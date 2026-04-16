@@ -1,0 +1,461 @@
+"use client"
+
+import { useRef, useState, useTransition } from "react"
+import {
+  Check,
+  ChevronDown,
+  Clock,
+  FileWarning,
+  ImagePlus,
+  Loader2,
+  MessageSquareText,
+  MinusCircle,
+  SkipForward,
+  User,
+  X,
+} from "lucide-react"
+import type { ItemStatus, TestItem } from "@/lib/types"
+import { STATUS_CONFIG, STATUS_ORDER } from "@/lib/status-config"
+import {
+  updateItemFields,
+  updateItemStatus,
+  uploadScreenshot,
+} from "@/app/actions"
+import { toast } from "sonner"
+
+type Props = {
+  item: TestItem
+  unlocked: boolean
+  onLocalUpdate: (itemId: number, patch: Partial<TestItem>) => void
+}
+
+const STATUS_ICONS: Record<ItemStatus, typeof Check> = {
+  pending: Clock,
+  pass: Check,
+  fail: X,
+  blocked: MinusCircle,
+  skip: SkipForward,
+}
+
+export function ChecklistItem({ item, unlocked, onLocalUpdate }: Props) {
+  const [expanded, setExpanded] = useState(false)
+  const [statusPending, startStatusTransition] = useTransition()
+  const [savePending, startSaveTransition] = useTransition()
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const [notes, setNotes] = useState(item.notes ?? "")
+  const [testerName, setTesterName] = useState(item.tester_name ?? "")
+  const [errorDesc, setErrorDesc] = useState(item.error_description ?? "")
+  const [errorCode, setErrorCode] = useState(item.error_code ?? "")
+
+  const cfg = STATUS_CONFIG[item.status]
+
+  const handleStatusChange = (next: ItemStatus) => {
+    if (!unlocked) {
+      toast.error("التعديل مقفول — افتحه من الأعلى")
+      return
+    }
+    if (next === item.status) return
+    const prev = item.status
+    onLocalUpdate(item.id, { status: next })
+    startStatusTransition(async () => {
+      const res = await updateItemStatus(item.id, next)
+      if (!res.ok) {
+        onLocalUpdate(item.id, { status: prev })
+        toast.error(res.error || "فشل التحديث")
+      }
+    })
+  }
+
+  const handleSaveDetails = () => {
+    if (!unlocked) {
+      toast.error("التعديل مقفول")
+      return
+    }
+    startSaveTransition(async () => {
+      const payload = {
+        notes: notes.trim() || null,
+        tester_name: testerName.trim() || null,
+        error_description: errorDesc.trim() || null,
+        error_code: errorCode.trim() || null,
+      }
+      const res = await updateItemFields(item.id, payload)
+      if (res.ok) {
+        onLocalUpdate(item.id, payload)
+        toast.success("تم الحفظ")
+      } else {
+        toast.error(res.error || "فشل الحفظ")
+      }
+    })
+  }
+
+  const handleUpload = async (file: File) => {
+    if (!unlocked) {
+      toast.error("التعديل مقفول")
+      return
+    }
+    setUploading(true)
+    const fd = new FormData()
+    fd.append("file", file)
+    const res = await uploadScreenshot(item.id, fd)
+    setUploading(false)
+    if (res.ok && res.url) {
+      onLocalUpdate(item.id, { screenshot_url: res.url })
+      toast.success("تم رفع الصورة")
+    } else {
+      toast.error(res.error || "فشل رفع الصورة")
+    }
+  }
+
+  const handleRemoveScreenshot = () => {
+    if (!unlocked) return
+    startSaveTransition(async () => {
+      const res = await updateItemFields(item.id, { screenshot_url: null })
+      if (res.ok) {
+        onLocalUpdate(item.id, { screenshot_url: null })
+        toast.success("تمت الإزالة")
+      } else {
+        toast.error(res.error || "فشل")
+      }
+    })
+  }
+
+  const StatusIcon = STATUS_ICONS[item.status]
+
+  const hasDetails =
+    !!item.notes ||
+    !!item.tester_name ||
+    !!item.error_description ||
+    !!item.error_code ||
+    !!item.screenshot_url
+
+  const hasErrorDetails =
+    item.status === "fail" || item.status === "blocked" || !!errorDesc || !!errorCode
+
+  // Row accent — left-edge bar reflecting status
+  const accent = cfg.color
+
+  return (
+    <li className="group relative">
+      {/* Left edge accent bar */}
+      <span
+        aria-hidden
+        className="absolute top-0 right-0 bottom-0 w-[3px]"
+        style={{
+          background: item.status === "pending" ? "transparent" : accent,
+          opacity: item.status === "pending" ? 0 : 0.9,
+        }}
+      />
+
+      <div
+        className={`px-5 lg:px-8 py-4 lg:py-5 transition-colors ${
+          expanded ? "bg-muted/50" : "hover:bg-muted/30"
+        }`}
+      >
+        <div className="flex items-start gap-4">
+          {/* Status icon button — quick toggle pass */}
+          <button
+            type="button"
+            onClick={() =>
+              handleStatusChange(item.status === "pass" ? "pending" : "pass")
+            }
+            disabled={!unlocked || statusPending}
+            aria-label="تبديل الحالة السريع"
+            className={`shrink-0 size-10 rounded-md flex items-center justify-center transition-all ${
+              !unlocked ? "cursor-not-allowed" : "cursor-pointer hover:scale-105"
+            }`}
+            style={{
+              background:
+                item.status === "pass"
+                  ? "var(--status-pass)"
+                  : item.status === "pending"
+                  ? "transparent"
+                  : cfg.softBg,
+              border:
+                item.status === "pending"
+                  ? "1.5px dashed var(--border-strong)"
+                  : item.status === "pass"
+                  ? "none"
+                  : `1px solid color-mix(in oklch, ${accent} 40%, transparent)`,
+              color:
+                item.status === "pass"
+                  ? "var(--primary-foreground)"
+                  : item.status === "pending"
+                  ? "var(--muted-foreground)"
+                  : accent,
+            }}
+          >
+            <StatusIcon className="size-5" strokeWidth={item.status === "pass" ? 3 : 2} />
+          </button>
+
+          <div className="flex-1 min-w-0 space-y-3">
+            {/* Code line */}
+            <div className="flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                  <span
+                    className="font-mono text-[11px] font-semibold num-latin px-1.5 py-0.5 rounded"
+                    style={{
+                      color: "var(--gold)",
+                      background: "color-mix(in oklch, var(--gold) 10%, transparent)",
+                    }}
+                  >
+                    {item.code}
+                  </span>
+
+                  {/* Current status badge */}
+                  <span
+                    className="status-chip"
+                    style={{
+                      color: cfg.color,
+                      background: cfg.softBg,
+                      borderColor:
+                        "color-mix(in oklch, " + cfg.color + " 30%, transparent)",
+                    }}
+                  >
+                    <span className="status-chip-dot" />
+                    {cfg.label}
+                  </span>
+
+                  {hasDetails && (
+                    <span
+                      className="tag-mono flex items-center gap-1"
+                      style={{ color: "var(--primary)" }}
+                    >
+                      <span
+                        className="size-1.5 rounded-full"
+                        style={{ background: "var(--primary)" }}
+                      />
+                      has notes
+                    </span>
+                  )}
+
+                  {statusPending && (
+                    <Loader2 className="size-3 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+
+                <p className="text-[15px] lg:text-base text-foreground leading-relaxed">
+                  {item.description}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="shrink-0 size-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-colors border border-transparent hover:border-border"
+                aria-label={expanded ? "إغلاق التفاصيل" : "فتح التفاصيل"}
+              >
+                <ChevronDown
+                  className={`size-4 transition-transform duration-300 ${
+                    expanded ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Status pills */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {STATUS_ORDER.map((s) => {
+                const active = item.status === s
+                const sc = STATUS_CONFIG[s]
+                const Icon = STATUS_ICONS[s]
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => handleStatusChange(s)}
+                    disabled={!unlocked || statusPending}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all border ${
+                      !unlocked ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                    }`}
+                    style={{
+                      background: active ? sc.softBg : "transparent",
+                      color: active ? sc.color : "var(--muted-foreground)",
+                      borderColor: active
+                        ? "color-mix(in oklch, " + sc.color + " 35%, transparent)"
+                        : "var(--border)",
+                    }}
+                  >
+                    <Icon className="size-3" />
+                    <span>{sc.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded details */}
+      {expanded && (
+        <div className="border-t border-border bg-background/80">
+          <div className="px-5 lg:px-8 py-6 space-y-6">
+            <div className="grid sm:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <label className="tag-mono text-muted-foreground flex items-center gap-2">
+                  <User className="size-3" />
+                  Tester
+                </label>
+                <input
+                  type="text"
+                  value={testerName}
+                  onChange={(e) => setTesterName(e.target.value)}
+                  disabled={!unlocked}
+                  placeholder="اكتب اسمك..."
+                  className="w-full bg-card border border-border rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50 transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="tag-mono text-muted-foreground">
+                  Last updated
+                </label>
+                <div className="font-mono text-sm text-foreground/80 bg-card border border-border rounded-md px-4 py-2.5 num-latin">
+                  {new Date(item.updated_at).toLocaleString("en-GB", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="tag-mono text-muted-foreground flex items-center gap-2">
+                <MessageSquareText className="size-3" />
+                Notes
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                disabled={!unlocked}
+                rows={3}
+                placeholder="أي ملاحظة إضافية..."
+                className="w-full bg-card border border-border rounded-md px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50 resize-y leading-relaxed transition-all"
+              />
+            </div>
+
+            {hasErrorDetails && (
+              <div
+                className="rounded-md border p-5 space-y-4"
+                style={{
+                  borderColor:
+                    "color-mix(in oklch, var(--status-fail) 35%, transparent)",
+                  background: "var(--status-fail-soft)",
+                }}
+              >
+                <div
+                  className="flex items-center gap-2 tag-mono"
+                  style={{ color: "var(--status-fail)" }}
+                >
+                  <FileWarning className="size-4" />
+                  Error Report
+                </div>
+                <div className="space-y-2">
+                  <label className="tag-mono text-muted-foreground">
+                    Description
+                  </label>
+                  <textarea
+                    value={errorDesc}
+                    onChange={(e) => setErrorDesc(e.target.value)}
+                    disabled={!unlocked}
+                    rows={2}
+                    placeholder="اشرح المشكلة..."
+                    className="w-full bg-card border border-border rounded-md px-4 py-3 text-sm focus:outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/15 disabled:opacity-50 leading-relaxed transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="tag-mono text-muted-foreground">
+                    Stack trace / Code
+                  </label>
+                  <textarea
+                    value={errorCode}
+                    onChange={(e) => setErrorCode(e.target.value)}
+                    disabled={!unlocked}
+                    rows={4}
+                    placeholder="Paste console error or code..."
+                    dir="ltr"
+                    className="w-full bg-card border border-border rounded-md px-4 py-3 text-xs font-mono focus:outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/15 disabled:opacity-50 leading-relaxed transition-all"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <label className="tag-mono text-muted-foreground flex items-center gap-2">
+                <ImagePlus className="size-3" />
+                Screenshot
+              </label>
+              {item.screenshot_url ? (
+                <div className="relative max-w-lg rounded-md overflow-hidden border border-border group/img">
+                  <a href={item.screenshot_url} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.screenshot_url}
+                      alt={`Screenshot for ${item.code}`}
+                      className="w-full h-auto transition-transform duration-300 group-hover/img:scale-105"
+                    />
+                  </a>
+                  {unlocked && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveScreenshot}
+                      className="absolute top-3 left-3 size-8 rounded-md bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive transition-colors"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) void handleUpload(file)
+                      if (fileRef.current) fileRef.current.value = ""
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={!unlocked || uploading}
+                    className="inline-flex items-center gap-2 px-5 py-3 rounded-md border-2 border-dashed border-border text-sm text-muted-foreground hover:text-primary hover:border-primary transition-colors disabled:opacity-50 bg-card"
+                  >
+                    {uploading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <ImagePlus className="size-4" />
+                    )}
+                    {uploading ? "جاري الرفع..." : "رفع صورة"}
+                  </button>
+                </>
+              )}
+            </div>
+
+            {unlocked ? (
+              <div className="flex justify-end pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={handleSaveDetails}
+                  disabled={savePending}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 transition-all"
+                >
+                  {savePending && <Loader2 className="size-4 animate-spin" />}
+                  حفظ التفاصيل
+                </button>
+              </div>
+            ) : (
+              <p className="tag-mono text-muted-foreground text-center py-2">
+                Read-only — افتح وضع التعديل من الأعلى للكتابة
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </li>
+  )
+}
