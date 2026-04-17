@@ -54,9 +54,14 @@ ORDER BY tablename;
 SELECT
   'SITE_SETTINGS_SEED' AS test,
   id,
-  site_name,
+  brand_name,
   signups_open,
-  default_team_capacity
+  default_team_capacity,
+  default_max_files,
+  max_file_size_mb,
+  invitation_ttl_days,
+  ai_enabled,
+  ai_daily_limit_per_team
 FROM site_settings
 WHERE id = 1;
 

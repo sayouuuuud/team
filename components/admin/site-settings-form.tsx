@@ -8,7 +8,7 @@ import {
 } from "@/app/admin/actions"
 
 export type SiteSettingsValues = {
-  site_name: string
+  brand_name: string
   signups_open: boolean
   default_team_capacity: number
   default_max_files: number
@@ -45,9 +45,9 @@ export function SiteSettingsForm({ initial }: { initial: SiteSettingsValues }) {
     <form action={action} className="space-y-8">
       <Fieldset legend="الهوية">
         <TextField
-          name="site_name"
+          name="brand_name"
           label="اسم المنصة"
-          defaultValue={initial.site_name}
+          defaultValue={initial.brand_name}
         />
       </Fieldset>
 

@@ -16,13 +16,13 @@ export default async function AdminSettingsPage() {
   const { data } = await service
     .from("site_settings")
     .select(
-      "site_name, signups_open, default_team_capacity, default_max_files, max_file_size_mb, invitation_ttl_days, ai_enabled, ai_daily_limit_per_team",
+      "brand_name, signups_open, default_team_capacity, default_max_files, max_file_size_mb, invitation_ttl_days, ai_enabled, ai_daily_limit_per_team",
     )
     .eq("id", 1)
     .maybeSingle()
 
   const initial: SiteSettingsValues = {
-    site_name: data?.site_name ?? "Team Platform",
+    brand_name: data?.brand_name ?? "Team Platform",
     signups_open: data?.signups_open ?? true,
     default_team_capacity: data?.default_team_capacity ?? 8,
     default_max_files: data?.default_max_files ?? 5,

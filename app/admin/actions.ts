@@ -18,7 +18,7 @@ export async function updateSiteSettingsAction(
     return { error: "صلاحية مدير المنصة مطلوبة." }
   }
 
-  const siteName = String(formData.get("site_name") ?? "").trim()
+  const brandName = String(formData.get("brand_name") ?? "").trim()
   const signupsOpen = formData.get("signups_open") === "on"
   const defaultTeamCapacity = Number(formData.get("default_team_capacity") ?? 8)
   const defaultMaxFiles = Number(formData.get("default_max_files") ?? 5)
@@ -27,7 +27,7 @@ export async function updateSiteSettingsAction(
   const aiEnabled = formData.get("ai_enabled") === "on"
   const aiDailyLimitPerTeam = Number(formData.get("ai_daily_limit_per_team") ?? 100)
 
-  if (!siteName) return { error: "أدخل اسم المنصة." }
+  if (!brandName) return { error: "أدخل اسم المنصة." }
   if (defaultTeamCapacity < 1 || defaultTeamCapacity > 500)
     return { error: "سعة الفريق بين 1 و 500." }
   if (defaultMaxFiles < 1 || defaultMaxFiles > 50)
@@ -41,7 +41,7 @@ export async function updateSiteSettingsAction(
   const { error } = await service
     .from("site_settings")
     .update({
-      site_name: siteName,
+      brand_name: brandName,
       signups_open: signupsOpen,
       default_team_capacity: defaultTeamCapacity,
       default_max_files: defaultMaxFiles,

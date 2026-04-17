@@ -10,11 +10,11 @@ export default async function LandingPage() {
   const service = createServiceClient()
   const { data: settings } = await service
     .from("site_settings")
-    .select("site_name, signups_open")
+    .select("brand_name, signups_open")
     .eq("id", 1)
     .maybeSingle()
 
-  const siteName = settings?.site_name ?? "Team Platform"
+  const siteName = settings?.brand_name ?? "Team Platform"
   const signupsOpen = settings?.signups_open ?? true
 
   return (
