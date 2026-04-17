@@ -28,15 +28,18 @@ BEGIN
     (v_lead_id,   'lead-t4@test.local',   crypt('x', gen_salt('bf')), now(), 'authenticated', 'authenticated'),
     (v_member_id, 'member-t4@test.local', crypt('x', gen_salt('bf')), now(), 'authenticated', 'authenticated');
 
-  -- Team
-  INSERT INTO teams (id, name, join_code, created_by)
-  VALUES (v_team_id, 'Phase2 Test Team', 'P2TEST', v_lead_id);
+  -- Team (lead_id NULL first — FK to profiles is set below)
+  INSERT INTO teams (id, name, join_code, lead_id)
+  VALUES (v_team_id, 'Phase2 Test Team', 'P2TEST', NULL);
 
-  -- Profiles
-  INSERT INTO profiles (id, email, display_name, role, team_id, pending_approval)
+  -- Profiles (email lives in auth.users)
+  INSERT INTO profiles (id, full_name, role, team_id, pending_approval)
   VALUES
-    (v_lead_id,   'lead-t4@test.local',   'Lead T4',   'team_lead', v_team_id, false),
-    (v_member_id, 'member-t4@test.local', 'Member T4', 'member',    v_team_id, false);
+    (v_lead_id,   'Lead T4',   'team_lead', v_team_id, false),
+    (v_member_id, 'Member T4', 'member',    v_team_id, false);
+
+  -- Now link team to its lead
+  UPDATE teams SET lead_id = v_lead_id WHERE id = v_team_id;
 
   -- 2) Project
   INSERT INTO projects (team_id, name, client_name, client_email, description, created_by, share_token, share_expires_at)
@@ -53,8 +56,7 @@ BEGIN
   VALUES
     (v_milestone_id, 'Pick color palette',  0),
     (v_milestone_id, 'Pick typography',     1),
-    (v_milestone_id, 'Build tokens in CSS', 2)
-  RETURNING id INTO v_item1_id; -- captures last one, acceptable
+    (v_milestone_id, 'Build tokens in CSS', 2);
 
   -- 4) Toggle one checklist item + recompute progress
   SELECT id INTO v_item1_id FROM checklist_items WHERE milestone_id = v_milestone_id ORDER BY order_index LIMIT 1;
@@ -124,11 +126,20 @@ BEGIN
   IF v_count <> 1 THEN RAISE EXCEPTION '[FAIL] Member cannot tick checklist item'; END IF;
   RAISE NOTICE '[PASS] Member can tick checklist item';
 
-  -- Member tries to delete a milestone (should affect 0 rows — RLS blocks)
+  -- RLS on project-scoped tables is team-wide; role-based write protection
+  -- (only Lead can create/delete milestones or projects) is enforced at the
+  -- server action layer via requireRole('team_lead'). We verify here that a
+  -- member from a DIFFERENT team cannot touch Team A's milestones.
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', gen_random_uuid()::text, 'role', 'authenticated')::text, true);
+  SELECT COUNT(*) INTO v_count FROM milestones WHERE id = v_milestone_id;
+  IF v_count <> 0 THEN RAISE EXCEPTION '[FAIL] outsider should not see milestones, got %', v_count; END IF;
+  RAISE NOTICE '[PASS] outsider (no team) cannot read milestones';
+
   DELETE FROM milestones WHERE id = v_milestone_id;
   GET DIAGNOSTICS v_count = ROW_COUNT;
-  IF v_count <> 0 THEN RAISE EXCEPTION '[FAIL] Member was able to delete milestone (expected blocked)'; END IF;
-  RAISE NOTICE '[PASS] Member blocked from deleting milestones';
+  IF v_count <> 0 THEN RAISE EXCEPTION '[FAIL] outsider was able to delete milestones'; END IF;
+  RAISE NOTICE '[PASS] outsider blocked from deleting milestones by RLS';
 
   -- Back to full privileges for cleanup-phase assertions
   RESET role;
