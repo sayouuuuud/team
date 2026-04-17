@@ -43,13 +43,17 @@ export const ourFileRouter = {
     })
     .onUploadComplete(async ({ metadata, file }) => {
       const supabase = await createClient()
+      // UploadThing v7 returns `ufsUrl`; older responses may still expose `url`.
+      const blobUrl =
+        (file as unknown as { ufsUrl?: string; url?: string }).ufsUrl ??
+        (file as unknown as { url: string }).url
       await supabase.from("files").insert({
         team_id: metadata.teamId,
         project_id: metadata.projectId,
         milestone_id: metadata.milestoneId,
         uploaded_by: metadata.userId,
-        name: file.name,
-        url: file.ufsUrl,
+        filename: file.name,
+        blob_url: blobUrl,
         storage_key: file.key,
         size_bytes: file.size,
         mime_type: file.type,
