@@ -204,43 +204,53 @@ SELECT 'SITE_SETTINGS' AS section,
 FROM site_settings WHERE id = 1;
 
 -- ---- 13) Live function smoke test: sync_milestone_progress works end-to-end
+-- Creates a real auth.users row first (satisfying profiles_id_fkey), runs the
+-- check, then raises 'rollback_smoke' to force a clean rollback so nothing
+-- persists in auth.users or any public table.
 DO $$
 DECLARE
   v_team uuid := gen_random_uuid();
   v_lead uuid := gen_random_uuid();
   v_proj uuid := gen_random_uuid();
   v_mile uuid := gen_random_uuid();
-  v_item uuid;
   v_progress int;
 BEGIN
-  BEGIN
-    INSERT INTO teams (id, name, join_code, lead_id)
-      VALUES (v_team, 'SmokeTeam', 'SMOKE6', NULL);
-    INSERT INTO profiles (id, full_name, role, team_id)
-      VALUES (v_lead, 'Smoke Lead', 'team_lead', v_team);
-    UPDATE teams SET lead_id = v_lead WHERE id = v_team;
+  -- Minimal auth.users row so the profiles FK is happy.
+  INSERT INTO auth.users (id, instance_id, email, aud, role)
+    VALUES (
+      v_lead,
+      '00000000-0000-0000-0000-000000000000'::uuid,
+      'smoke-' || v_lead::text || '@test.local',
+      'authenticated',
+      'authenticated'
+    );
 
-    INSERT INTO projects (id, team_id, name, created_by)
-      VALUES (v_proj, v_team, 'Smoke Project', v_lead);
+  INSERT INTO teams (id, name, join_code, lead_id)
+    VALUES (v_team, 'SmokeTeam', 'SMOKE6', NULL);
+  INSERT INTO profiles (id, full_name, role, team_id)
+    VALUES (v_lead, 'Smoke Lead', 'team_lead', v_team);
+  UPDATE teams SET lead_id = v_lead WHERE id = v_team;
 
-    INSERT INTO milestones (id, project_id, title, created_by, order_index)
-      VALUES (v_mile, v_proj, 'Smoke Milestone', v_lead, 0);
+  INSERT INTO projects (id, team_id, name, created_by)
+    VALUES (v_proj, v_team, 'Smoke Project', v_lead);
 
-    -- Insert 4 items, tick 2 of them -> expect progress = 50
-    INSERT INTO checklist_items (milestone_id, text, order_index)
-      VALUES (v_mile, 'a', 0), (v_mile, 'b', 1), (v_mile, 'c', 2), (v_mile, 'd', 3);
+  INSERT INTO milestones (id, project_id, title, created_by, order_index)
+    VALUES (v_mile, v_proj, 'Smoke Milestone', v_lead, 0);
 
-    UPDATE checklist_items SET is_done = true
-      WHERE milestone_id = v_mile
-        AND text IN ('a','b');
+  -- Insert 4 items, tick 2 of them -> expect progress = 50
+  INSERT INTO checklist_items (milestone_id, text, order_index)
+    VALUES (v_mile, 'a', 0), (v_mile, 'b', 1), (v_mile, 'c', 2), (v_mile, 'd', 3);
 
-    SELECT progress INTO v_progress FROM milestones WHERE id = v_mile;
-    IF v_progress <> 50 THEN
-      RAISE EXCEPTION '[SMOKE FAIL] expected progress=50, got %', v_progress;
-    END IF;
-    RAISE NOTICE '[SMOKE OK] sync_milestone_progress -> 50%%';
-  EXCEPTION WHEN OTHERS THEN
-    RAISE;
-  END;
-  RAISE EXCEPTION 'rollback_smoke'; -- force rollback
+  UPDATE checklist_items SET is_done = true
+    WHERE milestone_id = v_mile
+      AND text IN ('a','b');
+
+  SELECT progress INTO v_progress FROM milestones WHERE id = v_mile;
+  IF v_progress <> 50 THEN
+    RAISE EXCEPTION '[SMOKE FAIL] expected progress=50, got %', v_progress;
+  END IF;
+  RAISE NOTICE '[SMOKE OK] sync_milestone_progress -> 50%%';
+
+  -- Force rollback so nothing persists.
+  RAISE EXCEPTION 'rollback_smoke';
 END $$;
