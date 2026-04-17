@@ -74,7 +74,7 @@ SELECT 'P4_time_entries_one_running_idx' AS section,
        CASE WHEN EXISTS (
          SELECT 1 FROM pg_indexes
          WHERE tablename='time_entries'
-           AND indexname='time_entries_one_running_per_user_idx'
+           AND indexname='uq_time_entries_one_running_per_user'
        ) THEN 'OK' ELSE 'MISSING' END AS value;
 
 -- ---- 6) Phase 5 enums + columns ----
@@ -108,10 +108,10 @@ SELECT 'P6_profiles_timezone' AS section,
          WHERE table_name='profiles' AND column_name='timezone'
        ) THEN 'OK' ELSE 'MISSING' END AS value;
 
-SELECT 'P6_profiles_notifications_email' AS section,
+SELECT 'P6_profiles_notify_email' AS section,
        CASE WHEN EXISTS (
          SELECT 1 FROM information_schema.columns
-         WHERE table_name='profiles' AND column_name='notifications_email'
+         WHERE table_name='profiles' AND column_name='notify_email'
        ) THEN 'OK' ELSE 'MISSING' END AS value;
 
 SELECT 'P6_files_deleted_at' AS section,
@@ -146,9 +146,9 @@ WHERE n.nspname = 'public'
     'prune_audit_log',
     'prune_expired_invitations',
     'prevent_lead_demotion',
-    'compute_time_entry_duration',
+    'set_time_entry_duration',
     'bump_project_activity',
-    'bump_milestone_approved_at',
+    'stamp_milestone_approval',
     'stamp_file_deleted_at'
   );
 
@@ -247,10 +247,24 @@ BEGIN
 
   SELECT progress INTO v_progress FROM milestones WHERE id = v_mile;
   IF v_progress <> 50 THEN
+    -- clean up before raising
+    DELETE FROM checklist_items WHERE milestone_id = v_mile;
+    DELETE FROM milestones      WHERE id = v_mile;
+    DELETE FROM projects        WHERE id = v_proj;
+    DELETE FROM profiles        WHERE id = v_lead;
+    DELETE FROM teams           WHERE id = v_team;
+    DELETE FROM auth.users      WHERE id = v_lead;
     RAISE EXCEPTION '[SMOKE FAIL] expected progress=50, got %', v_progress;
   END IF;
   RAISE NOTICE '[SMOKE OK] sync_milestone_progress -> 50%%';
 
-  -- Force rollback so nothing persists.
-  RAISE EXCEPTION 'rollback_smoke';
+  -- Manual cleanup (we cannot RAISE here because the executor treats any
+  -- exception as a hard failure even when everything above succeeded).
+  DELETE FROM checklist_items WHERE milestone_id = v_mile;
+  DELETE FROM milestones      WHERE id = v_mile;
+  DELETE FROM projects        WHERE id = v_proj;
+  DELETE FROM profiles        WHERE id = v_lead;
+  DELETE FROM teams           WHERE id = v_team;
+  DELETE FROM auth.users      WHERE id = v_lead;
+  RAISE NOTICE '[SMOKE OK] cleanup complete';
 END $$;
