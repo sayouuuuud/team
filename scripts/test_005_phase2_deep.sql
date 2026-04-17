@@ -67,7 +67,6 @@ BEGIN
   -- 2. Pending approval gate: new member is blocked from team data
   --    (we check by explicit flag — gate is enforced in app layer)
   -- ==========================================================
-  SELECT pending_approval INTO v_count FROM profiles WHERE id = v_pending_id;
   IF NOT (SELECT pending_approval FROM profiles WHERE id = v_pending_id) THEN
     RAISE EXCEPTION '[FAIL] Pending member should have pending_approval=true';
   END IF;
