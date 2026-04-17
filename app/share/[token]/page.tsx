@@ -98,15 +98,21 @@ function formatBytes(n: number) {
 }
 
 const STATUS_LABELS: Record<string, string> = {
+  // project_status
   active: "نشط",
-  on_hold: "موقوف",
+  paused: "متوقف مؤقتاً",
   completed: "مكتمل",
   archived: "مؤرشف",
+  // work_mode
+  parallel: "عمل متوازٍ",
+  assigned: "إسناد فردي",
+  mixed: "مختلط",
+  // milestone_status
   pending: "قيد الانتظار",
-  in_progress: "قيد التنفيذ",
-  in_review: "قيد المراجعة",
-  blocked: "متوقف",
-  done: "مكتمل",
+  working: "قيد التنفيذ",
+  review: "قيد المراجعة",
+  approved: "معتمد",
+  rejected: "مرفوض",
 }
 
 export default async function SharePage({
