@@ -26,8 +26,8 @@ const jetBrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "منصة التحقق | ITQ Testing",
-  description: "منصة تتبع اختبارات المقرأة والأكاديمية — تحديث لحظي وتعاون مباشر",
+  title: "Team Platform — منصة إدارة الفريق",
+  description: "منصة داخلية لإدارة مشاريع الفريق، milestones، الملفات، والتعاون مع العميل عبر رابط مشاركة آمن.",
   generator: "v0.app",
 }
 
@@ -45,7 +45,7 @@ export default function RootLayout({
     <html
       lang="ar"
       dir="rtl"
-      className={`${fraunces.variable} ${cairo.variable} ${jetBrainsMono.variable}`}
+      className={`${fraunces.variable} ${cairo.variable} ${jetBrainsMono.variable} bg-background`}
     >
       <body className="font-sans antialiased min-h-screen bg-background">
         {children}
