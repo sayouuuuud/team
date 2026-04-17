@@ -87,7 +87,7 @@ BEGIN
     RETURNING id INTO team_a;
 
   INSERT INTO profiles (id, full_name, role, team_id)
-    VALUES (lead_a, 'Lead A', 'lead', team_a);
+    VALUES (lead_a, 'Lead A', 'team_lead', team_a);
 
   UPDATE teams SET lead_id = lead_a WHERE id = team_a;
 
@@ -99,7 +99,7 @@ BEGIN
 
   -- Lead B setup (for isolation)
   INSERT INTO teams (name, join_code) VALUES ('Team Beta', code_b) RETURNING id INTO team_b;
-  INSERT INTO profiles (id, full_name, role, team_id) VALUES (lead_b, 'Lead B', 'lead', team_b);
+  INSERT INTO profiles (id, full_name, role, team_id) VALUES (lead_b, 'Lead B', 'team_lead', team_b);
   UPDATE teams SET lead_id = lead_b WHERE id = team_b;
   INSERT INTO projects (team_id, name) VALUES (team_b, 'Beta Project') RETURNING id INTO proj_b;
   RAISE NOTICE '[PASS] Lead B setup: team=%, join_code=%', team_b, code_b;
@@ -147,7 +147,7 @@ BEGIN
   -- -------------------------------------------------------------------
   caught_rls := false;
   BEGIN
-    UPDATE profiles SET role = 'lead' WHERE id = member_a;
+    UPDATE profiles SET role = 'team_lead' WHERE id = member_a;
     -- If RLS blocks silently with 0 rows, check:
     SELECT role::text INTO result_count FROM profiles WHERE id = member_a;
   EXCEPTION WHEN insufficient_privilege OR others THEN
@@ -155,7 +155,7 @@ BEGIN
   END;
 
   PERFORM pg_temp.become_admin();
-  IF (SELECT role FROM profiles WHERE id = member_a) = 'lead' THEN
+  IF (SELECT role FROM profiles WHERE id = member_a) = 'team_lead' THEN
     RAISE EXCEPTION '[FAIL] Member A was able to self-promote to lead';
   END IF;
   RAISE NOTICE '[PASS] RLS: Member A cannot self-promote';
