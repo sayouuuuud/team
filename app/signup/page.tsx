@@ -7,8 +7,8 @@ export default function SignupPage() {
   return (
     <AuthShell
       eyebrow="Create account"
-      title="ابدأ فريقك"
-      subtitle="أنشئ حساب قائد فريق لتبدأ مشروعك، أو انضم لفريق موجود بكود دعوة."
+      title="أنشئ حسابك"
+      subtitle="حساب واحد يكفي. بعد التسجيل تقدر تنشئ فريقك أو تنضم لفريق موجود بكود."
     >
       <SignupForm />
     </AuthShell>

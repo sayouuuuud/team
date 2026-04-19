@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import { useActionState } from "react"
 import { useFormStatus } from "react-dom"
 import Link from "next/link"
 import { signupAction, type ActionState } from "@/app/auth/actions"
@@ -22,8 +22,6 @@ function SubmitButton() {
   )
 }
 
-type Mode = "lead" | "member-code"
-
 export function SignupForm({
   inviteToken,
   inviteEmail,
@@ -31,9 +29,7 @@ export function SignupForm({
   inviteToken?: string
   inviteEmail?: string
 }) {
-  const [mode, setMode] = useState<Mode>("lead")
   const [state, action] = useActionState<ActionState, FormData>(signupAction, null)
-  const isInvite = Boolean(inviteToken)
 
   if (state?.ok) {
     return (
@@ -65,71 +61,23 @@ export function SignupForm({
 
   return (
     <form action={action} className="space-y-5">
-      {isInvite ? (
-        <input type="hidden" name="mode" value="invite" />
-      ) : (
-        <input type="hidden" name="mode" value={mode} />
-      )}
       {inviteToken ? (
-        <input type="hidden" name="invite_token" value={inviteToken} />
-      ) : null}
-
-      {!isInvite ? (
-        <div
-          className="grid grid-cols-2 rounded-md border border-border p-1 bg-secondary text-sm"
-          role="tablist"
-        >
-          <button
-            type="button"
-            role="tab"
-            onClick={() => setMode("lead")}
-            className="h-9 rounded transition"
-            style={
-              mode === "lead"
-                ? {
-                    background: "var(--card)",
-                    color: "var(--foreground)",
-                    boxShadow: "0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent)",
-                  }
-                : { color: "var(--muted-foreground)" }
-            }
-          >
-            قائد فريق
-          </button>
-          <button
-            type="button"
-            role="tab"
-            onClick={() => setMode("member-code")}
-            className="h-9 rounded transition"
-            style={
-              mode === "member-code"
-                ? {
-                    background: "var(--card)",
-                    color: "var(--foreground)",
-                    boxShadow: "0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent)",
-                  }
-                : { color: "var(--muted-foreground)" }
-            }
-          >
-            انضمام بكود
-          </button>
-        </div>
-      ) : (
-        <div
-          className="rounded-md border border-border bg-secondary px-3 py-3 text-sm flex items-center gap-3"
-        >
-          <span
-            className="size-2 rounded-full"
-            style={{ background: "var(--gold)" }}
-          />
-          <div className="flex-1">
-            <div className="text-foreground">تم التحقق من الدعوة</div>
-            <div className="text-xs text-muted-foreground">
-              ستنضم للفريق مباشرة بعد تأكيد البريد.
+        <>
+          <input type="hidden" name="invite_token" value={inviteToken} />
+          <div className="rounded-md border border-border bg-secondary px-3 py-3 text-sm flex items-center gap-3">
+            <span
+              className="size-2 rounded-full"
+              style={{ background: "var(--gold)" }}
+            />
+            <div className="flex-1">
+              <div className="text-foreground">تم التحقق من الدعوة</div>
+              <div className="text-xs text-muted-foreground">
+                ستنضم للفريق مباشرة بعد تأكيد البريد.
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        </>
+      ) : null}
 
       <div className="space-y-2">
         <label className="tag-mono text-muted-foreground block">
@@ -139,6 +87,7 @@ export function SignupForm({
           name="full_name"
           type="text"
           required
+          maxLength={120}
           className="w-full h-11 rounded-md border border-border bg-card px-3 text-foreground outline-none focus:border-primary transition"
           placeholder="محمد عبد الله"
         />
@@ -175,44 +124,6 @@ export function SignupForm({
         />
       </div>
 
-      {!isInvite && mode === "lead" ? (
-        <div className="space-y-2">
-          <label className="tag-mono text-muted-foreground block">
-            اسم الفريق
-          </label>
-          <input
-            name="team_name"
-            type="text"
-            required
-            className="w-full h-11 rounded-md border border-border bg-card px-3 text-foreground outline-none focus:border-primary transition"
-            placeholder="Studio X"
-          />
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            سيتم توليد كود فريق (TEAM-XXXX-XXXX) يمكنك مشاركته مع أعضائك
-            لينضموا.
-          </p>
-        </div>
-      ) : null}
-
-      {!isInvite && mode === "member-code" ? (
-        <div className="space-y-2">
-          <label className="tag-mono text-muted-foreground block">
-            كود الفريق
-          </label>
-          <input
-            name="team_code"
-            type="text"
-            required
-            dir="ltr"
-            className="w-full h-11 rounded-md border border-border bg-card px-3 text-foreground outline-none focus:border-primary transition font-mono uppercase tracking-wider"
-            placeholder="TEAM-XXXX-XXXX"
-          />
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            سيراجع القائد طلب انضمامك قبل تفعيله.
-          </p>
-        </div>
-      ) : null}
-
       {state?.error ? (
         <div
           className="text-sm rounded-md px-3 py-2 border"
@@ -227,6 +138,10 @@ export function SignupForm({
       ) : null}
 
       <SubmitButton />
+
+      <p className="text-center text-xs text-muted-foreground leading-relaxed">
+        بعد إنشاء الحساب تقدر تنشئ فريقك أو تنضم لفريق بكود دعوة.
+      </p>
 
       <p className="text-center text-sm text-muted-foreground">
         عندك حساب بالفعل؟{" "}

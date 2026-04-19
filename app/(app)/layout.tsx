@@ -3,24 +3,34 @@ import { getTeamById } from "@/lib/data/team"
 import { logoutAction } from "@/app/auth/actions"
 import { AppNav } from "@/components/shell/app-nav"
 
+type NavItem = { href: string; label: string }
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await requireUser()
 
   const team = me.team_id ? await getTeamById(me.team_id) : null
 
-  const items =
-    me.role === "site_admin"
-      ? [
-          { href: "/dashboard", label: "الرئيسية" },
-          { href: "/admin/settings", label: "إعدادات المنصة" },
-          { href: "/testing", label: "ITQ Testing" },
-        ]
-      : [
-          { href: "/dashboard", label: "الرئيسية" },
-          { href: "/projects", label: "المشاريع" },
-          { href: "/team", label: "الفريق" },
-          { href: "/testing", label: "ITQ Testing" },
-        ]
+  let items: NavItem[]
+  if (me.role === "site_admin") {
+    items = [
+      { href: "/dashboard", label: "الرئيسية" },
+      { href: "/admin/settings", label: "إعدادات المنصة" },
+      { href: "/testing", label: "ITQ Testing" },
+    ]
+  } else if (me.team_id && !me.pending_approval) {
+    items = [
+      { href: "/dashboard", label: "الرئيسية" },
+      { href: "/projects", label: "المشاريع" },
+      { href: "/team", label: "الفريق" },
+      { href: "/account", label: "حسابي" },
+    ]
+  } else {
+    // solo user: no team yet, or pending approval
+    items = [
+      { href: "/dashboard", label: "الرئيسية" },
+      { href: "/account", label: "حسابي" },
+    ]
+  }
 
   return (
     <div className="min-h-screen paper-bg">

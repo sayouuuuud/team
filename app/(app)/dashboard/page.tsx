@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth/helpers"
 import { createClient } from "@/lib/supabase/server"
 import { getProjectsByTeam } from "@/lib/data/projects"
 import { getTeamMembers } from "@/lib/data/team"
+import { OnboardingPanel } from "@/components/dashboard/onboarding-panel"
 
 export const dynamic = "force-dynamic"
 
@@ -15,6 +16,30 @@ const ROLE_LABEL: Record<string, string> = {
 export default async function DashboardPage() {
   const me = await requireUser("/dashboard")
 
+  // Solo user (no team): show onboarding panel.
+  if (!me.team_id && me.role !== "site_admin") {
+    return (
+      <div className="rise-in">
+        <div className="mb-10">
+          <div className="eyebrow mb-3" style={{ color: "var(--gold)" }}>
+            Welcome
+          </div>
+          <h1 className="display-hero text-4xl lg:text-5xl text-foreground">
+            أهلاً، {me.full_name ?? "صديقي"}
+          </h1>
+          <div className="gold-rule w-16 mt-6" />
+          <p className="text-muted-foreground text-sm leading-relaxed mt-6 max-w-xl">
+            حسابك جاهز. تقدر دلوقتي تنشئ فريقك الخاص، تنضم لفريق موجود بكود
+            الانضمام، أو تتحكم في إعدادات حسابك.
+          </p>
+        </div>
+
+        <OnboardingPanel fullName={me.full_name} email={me.email} />
+      </div>
+    )
+  }
+
+  // User in a team: show the team-centric dashboard.
   const supabase = await createClient()
   const { data: team } = me.team_id
     ? await supabase
@@ -58,7 +83,8 @@ export default async function DashboardPage() {
               بانتظار موافقة القائد
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              سجّلت انضمامك للفريق. قائد الفريق سيراجع طلبك وبعدها هتقدر تدخل المشاريع.
+              سجّلت انضمامك للفريق. قائد الفريق سيراجع طلبك وبعدها هتقدر تدخل
+              المشاريع.
             </p>
           </div>
         </div>
@@ -87,8 +113,7 @@ export default async function DashboardPage() {
             </dl>
           ) : (
             <p className="text-sm text-muted-foreground leading-relaxed">
-              لست عضواً في فريق بعد. لو أنت قائد، أنشئ فريق. لو عضو، استخدم كود الفريق أو
-              رابط دعوة.
+              لست عضواً في فريق بعد.
             </p>
           )}
         </section>
