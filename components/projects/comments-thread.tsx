@@ -10,7 +10,7 @@ import {
 type CommentRow = {
   id: string
   parent_id: string | null
-  author_type: "team_member" | "client" | "user"
+  author_type: "team_member" | "client"
   author_id: string | null
   author_name: string | null
   content: string
