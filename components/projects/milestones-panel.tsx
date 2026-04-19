@@ -10,12 +10,14 @@ import {
   toggleChecklistItemAction,
   updateMilestoneStatusAction,
 } from "@/app/(app)/projects/[id]/actions"
+import { CommentsThread } from "@/components/projects/comments-thread"
 
 type Props = {
   projectId: string
   milestones: MilestoneRow[]
   checklist: ChecklistItemRow[]
   isLead: boolean
+  currentUserId: string
 }
 
 const STATUS_OPTIONS: {
@@ -35,6 +37,7 @@ export function MilestonesPanel({
   milestones,
   checklist,
   isLead,
+  currentUserId,
 }: Props) {
   const [showNewForm, setShowNewForm] = useState(false)
 
@@ -86,6 +89,7 @@ export function MilestonesPanel({
             milestone={m}
             items={itemsByMilestone.get(m.id) ?? []}
             isLead={isLead}
+            currentUserId={currentUserId}
           />
         ))}
       </div>
@@ -176,13 +180,16 @@ function MilestoneCard({
   milestone,
   items,
   isLead,
+  currentUserId,
 }: {
   projectId: string
   milestone: MilestoneRow
   items: ChecklistItemRow[]
   isLead: boolean
+  currentUserId: string
 }) {
   const [expanded, setExpanded] = useState(true)
+  const [showComments, setShowComments] = useState(false)
   const [pending, startTransition] = useTransition()
   const [newItemText, setNewItemText] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -364,6 +371,26 @@ function MilestoneCard({
           {error ? (
             <p className="text-xs text-destructive leading-relaxed">{error}</p>
           ) : null}
+
+          <div className="mt-4 pt-3 border-t border-border">
+            <button
+              type="button"
+              onClick={() => setShowComments((v) => !v)}
+              className="tag-mono text-muted-foreground hover:text-foreground"
+            >
+              {showComments ? "إخفاء التعليقات −" : "التعليقات +"}
+            </button>
+            {showComments ? (
+              <div className="mt-3">
+                <CommentsThread
+                  projectId={projectId}
+                  milestoneId={milestone.id}
+                  currentUserId={currentUserId}
+                  isLead={isLead}
+                />
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>

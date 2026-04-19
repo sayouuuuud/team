@@ -6,7 +6,16 @@ import type { Metadata } from "next"
 export const dynamic = "force-dynamic"
 
 type ShareStatus =
-  | { kind: "ok"; project: any; team: any; milestones: any[]; files: any[] }
+  | {
+      kind: "ok"
+      project: any
+      team: any
+      milestones: any[]
+      files: any[]
+      goals: any[]
+      changelog: any[]
+      resources: any[]
+    }
   | { kind: "expired" }
   | { kind: "not_found" }
 
@@ -52,12 +61,36 @@ async function loadShareData(token: string): Promise<ShareStatus> {
     .eq("pinned", true)
     .order("uploaded_at", { ascending: false })
 
+  const { data: goals } = await admin
+    .from("goals")
+    .select("id, title, description, kpi, progress, created_at")
+    .eq("project_id", project.id)
+    .order("created_at", { ascending: true })
+
+  const { data: changelog } = await admin
+    .from("changelog_entries")
+    .select("id, title, content, ai_generated, published_at")
+    .eq("project_id", project.id)
+    .order("published_at", { ascending: false })
+    .limit(25)
+
+  const { data: resources } = await admin
+    .from("resources")
+    .select("id, title, content, blob_url, type, created_at")
+    .eq("project_id", project.id)
+    .eq("is_public", true)
+    .neq("type", "credential")
+    .order("created_at", { ascending: false })
+
   return {
     kind: "ok",
     project,
     team,
     milestones: milestones ?? [],
     files: files ?? [],
+    goals: goals ?? [],
+    changelog: changelog ?? [],
+    resources: resources ?? [],
   }
 }
 
@@ -95,6 +128,13 @@ function formatBytes(n: number) {
   if (n < 1024) return `${n} B`
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
   return `${(n / 1024 / 1024).toFixed(1)} MB`
+}
+
+const RESOURCE_KIND_LABELS: Record<string, string> = {
+  brand_asset: "أصل هوية",
+  guide: "دليل",
+  credential: "بيانات وصول",
+  other: "أخرى",
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -141,7 +181,7 @@ export default async function SharePage({
     )
   }
 
-  const { project, team, milestones, files } = status
+  const { project, team, milestones, files, goals, changelog, resources } = status
   const overallProgress =
     milestones.length === 0
       ? 0
@@ -332,6 +372,142 @@ export default async function SharePage({
                   >
                     فتح
                   </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Goals */}
+        {goals.length > 0 && (
+          <section className="flex flex-col gap-4">
+            <header className="flex items-baseline justify-between">
+              <h2 className="font-display text-2xl text-foreground">
+                أهداف المشروع
+              </h2>
+              <span className="tag-mono text-muted-foreground">
+                {goals.length} هدف
+              </span>
+            </header>
+            <ul className="flex flex-col gap-2">
+              {goals.map((g) => (
+                <li key={g.id} className="card-paper p-5">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="min-w-0">
+                      <h3 className="font-display text-base text-foreground">
+                        {g.title}
+                      </h3>
+                      {g.description ? (
+                        <p className="text-sm text-muted-foreground leading-relaxed mt-1 text-pretty">
+                          {g.description}
+                        </p>
+                      ) : null}
+                      {g.kpi ? (
+                        <p
+                          className="tag-mono text-xs mt-2"
+                          style={{ color: "var(--gold)" }}
+                        >
+                          KPI · {g.kpi}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="text-left shrink-0 min-w-[64px]">
+                      <div className="font-display text-xl text-foreground num-latin">
+                        {g.progress ?? 0}
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-foreground"
+                      style={{ width: `${g.progress ?? 0}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Changelog */}
+        {changelog.length > 0 && (
+          <section className="flex flex-col gap-4">
+            <header className="flex items-baseline justify-between">
+              <h2 className="font-display text-2xl text-foreground">
+                آخر التحديثات
+              </h2>
+              <span className="tag-mono text-muted-foreground">
+                {changelog.length} تحديث
+              </span>
+            </header>
+            <ol className="flex flex-col gap-3">
+              {changelog.map((c) => (
+                <li key={c.id} className="card-paper p-5">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <h3 className="font-display text-lg text-foreground">
+                      {c.title}
+                    </h3>
+                    <span className="tag-mono text-muted-foreground shrink-0">
+                      {formatDate(c.published_at)}
+                    </span>
+                  </div>
+                  {c.ai_generated ? (
+                    <div className="tag-mono text-muted-foreground mb-2">
+                      AI
+                    </div>
+                  ) : null}
+                  {c.content ? (
+                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                      {c.content}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
+        {/* Public resources */}
+        {resources.length > 0 && (
+          <section className="flex flex-col gap-4">
+            <header className="flex items-baseline justify-between">
+              <h2 className="font-display text-2xl text-foreground">
+                مصادر وروابط
+              </h2>
+              <span className="tag-mono text-muted-foreground">
+                {resources.length} رابط
+              </span>
+            </header>
+            <ul className="flex flex-col gap-2">
+              {resources.map((r) => (
+                <li
+                  key={r.id}
+                  className="card-paper p-4 flex items-center justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <div className="font-display text-base text-foreground truncate">
+                      {r.title}
+                    </div>
+                    {r.content ? (
+                      <p className="text-xs text-muted-foreground leading-relaxed mt-1 line-clamp-2">
+                        {r.content}
+                      </p>
+                    ) : null}
+                    <div className="tag-mono text-muted-foreground mt-1">
+                      {RESOURCE_KIND_LABELS[r.type] ?? r.type}
+                    </div>
+                  </div>
+                  {r.blob_url ? (
+                    <a
+                      href={r.blob_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="tag-mono px-3 py-1.5 rounded-full border border-border hover:bg-muted shrink-0"
+                    >
+                      فتح
+                    </a>
+                  ) : null}
                 </li>
               ))}
             </ul>

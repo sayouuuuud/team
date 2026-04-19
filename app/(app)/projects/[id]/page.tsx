@@ -29,7 +29,7 @@ export default async function ProjectDetailPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
-  const { project, isLead } = await requireProjectAccess(id)
+  const { project, isLead, me } = await requireProjectAccess(id)
 
   const [milestones, files] = await Promise.all([
     getMilestonesByProject(id),
@@ -96,6 +96,7 @@ export default async function ProjectDetailPage(props: {
             milestones={milestones}
             checklist={checklistItems}
             isLead={isLead}
+            currentUserId={me.id}
           />
 
           <FilesPanel projectId={project.id} files={files} isLead={isLead} />
