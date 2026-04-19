@@ -1,8 +1,5 @@
-import Link from "next/link"
-import { notFound, redirect } from "next/navigation"
-import { requireUser } from "@/lib/auth/helpers"
+import { requireProjectAccess } from "@/lib/auth/project-access"
 import {
-  getProjectById,
   getMilestonesByProject,
   getChecklistByMilestones,
   getFilesByProject,
@@ -32,15 +29,7 @@ export default async function ProjectDetailPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
-  const me = await requireUser(`/projects/${id}`)
-  if (!me.team_id) redirect("/dashboard")
-  if (me.pending_approval) redirect("/dashboard")
-
-  const project = await getProjectById(id)
-  if (!project) notFound()
-  if (project.team_id !== me.team_id && me.role !== "site_admin") notFound()
-
-  const isLead = me.role === "team_lead"
+  const { project, isLead } = await requireProjectAccess(id)
 
   const [milestones, files] = await Promise.all([
     getMilestonesByProject(id),
@@ -60,20 +49,10 @@ export default async function ProjectDetailPage(props: {
       : 0
 
   return (
-    <div className="rise-in">
-      <Link
-        href="/projects"
-        className="tag-mono text-muted-foreground hover:text-foreground"
-      >
-        ← المشاريع
-      </Link>
-
-      <div className="mt-4 mb-10 flex flex-wrap items-start justify-between gap-6">
+    <div>
+      <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap mb-3">
-            <div className="eyebrow" style={{ color: "var(--gold)" }}>
-              Project
-            </div>
             <span
               className="tag-mono rounded-full px-2.5 py-1"
               style={{
@@ -84,11 +63,8 @@ export default async function ProjectDetailPage(props: {
               {STATUS_LABEL[project.status]}
             </span>
           </div>
-          <h1 className="display-hero text-3xl lg:text-4xl text-foreground text-balance">
-            {project.name}
-          </h1>
           {project.description ? (
-            <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-2xl">
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
               {project.description}
             </p>
           ) : null}
