@@ -412,8 +412,8 @@ export async function deleteMessageAction(fd: FormData) {
     .delete()
     .eq("id", id)
     .eq("project_id", projectId)
-  if (!isLead) q.eq("author_id", me.id)
-  const { error } = await q
+  const filtered = isLead ? q : q.eq("author_id", me.id)
+  const { error } = await filtered
   if (error) throw new Error(error.message)
   revalidatePath(`/projects/${projectId}/chat`)
 }
@@ -452,8 +452,8 @@ export async function deleteCommentAction(fd: FormData) {
   const supabase = await createClient()
   const isLead = me.role === "team_lead" || me.role === "site_admin"
   const q = supabase.from("comments").delete().eq("id", id)
-  if (!isLead) q.eq("author_id", me.id)
-  const { error } = await q
+  const filtered = isLead ? q : q.eq("author_id", me.id)
+  const { error } = await filtered
   if (error) throw new Error(error.message)
   await audit(me.id, me.team_id, "comment.delete", "comment", id, {})
   revalidatePath(`/projects/${projectId}`)
