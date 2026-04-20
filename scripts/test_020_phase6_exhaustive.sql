@@ -388,9 +388,9 @@ BEGIN
   -- Insert old + new audit rows, then simulate a prune by retention:
   INSERT INTO audit_log (team_id, actor_type, actor_id, actor_name, event, entity_type, created_at)
   VALUES
-    (v_team, 'team_member', v_user1, 'Old', 'test.event', 'test',
+    (v_team, 'user', v_user1, 'Old', 'test.event', 'test',
      now() - interval '400 days'),
-    (v_team, 'team_member', v_user1, 'New', 'test.event', 'test', now());
+    (v_team, 'user', v_user1, 'New', 'test.event', 'test', now());
 
   -- Manual prune equivalent to the function body
   DELETE FROM audit_log
