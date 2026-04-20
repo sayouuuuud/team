@@ -23,7 +23,7 @@ type EditableProposal = {
   project_name: string
   project_description: string | null
   client_name: string | null
-  work_mode: "parallel" | "sequential" | "mixed"
+  work_mode: "parallel" | "assigned" | "mixed"
   milestones: EditableMilestone[]
 }
 
@@ -222,7 +222,7 @@ function ProposalEditor({
             >
               <option value="mixed">Mixed</option>
               <option value="parallel">Parallel</option>
-              <option value="sequential">Sequential</option>
+              <option value="assigned">Assigned</option>
             </select>
           </Field>
           <Field label="وصف مختصر">

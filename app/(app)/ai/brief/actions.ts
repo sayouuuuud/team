@@ -23,7 +23,7 @@ const ProposalSchema = z.object({
   project_name: z.string().min(2).max(120),
   project_description: z.string().nullable(),
   client_name: z.string().nullable(),
-  work_mode: z.enum(["parallel", "sequential", "mixed"]),
+  work_mode: z.enum(["parallel", "assigned", "mixed"]),
   milestones: z.array(MilestoneSchema).min(1).max(15),
 })
 
@@ -61,6 +61,7 @@ export async function generateProjectFromBriefAction(
 - Extract concrete milestones with realistic checklists (max 8 items per milestone).
 - Prefer short titles (<= 80 chars).
 - For assignee_hint use the member's full name if it appears in the brief; otherwise the skill keyword that fits ("design", "frontend", "backend", "content", etc.), or null.
+- work_mode is one of exactly: "parallel" (team works on all at once), "assigned" (one owner per milestone, runs in order), "mixed".
 - Return ONLY the structured output — no extra prose.`,
       prompt: `Team members available:\n${memberHint || "(unknown)"}\n\nBrief:\n"""\n${cleaned}\n"""`,
       experimental_output: Output.object({ schema: ProposalSchema }),
@@ -90,7 +91,7 @@ const ApplySchema = z.object({
   project_name: z.string().min(2).max(120),
   project_description: z.string().nullable(),
   client_name: z.string().nullable(),
-  work_mode: z.enum(["parallel", "sequential", "mixed"]),
+  work_mode: z.enum(["parallel", "assigned", "mixed"]),
   milestones: z
     .array(
       z.object({
@@ -180,7 +181,7 @@ export async function applyProposalAction(payload: unknown): Promise<ApplyResult
       })
     }
 
-    if (data.work_mode === "sequential") {
+    if (data.work_mode === "assigned") {
       cursor = due
     }
   }
