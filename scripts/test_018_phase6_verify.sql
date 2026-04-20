@@ -84,7 +84,7 @@ BEGIN
 
   -- 7. audit_log indexes
   FOR v_msg IN
-    SELECT c FROM unnest(ARRAY['audit_log_team_created_idx','audit_log_actor_created_idx']) c
+    SELECT c FROM unnest(ARRAY['idx_audit_log_created','idx_audit_log_team','idx_audit_log_entity']) c
   LOOP
     IF NOT EXISTS (
       SELECT 1 FROM pg_indexes
