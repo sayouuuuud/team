@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import type { TestItem, TestSection } from "@/lib/types"
 import { ChecklistItem } from "./checklist-item"
-import { MessageSquareText } from "lucide-react"
+import { MessageSquareText, Plus, Minus } from "lucide-react"
 import { updateSectionNotes } from "@/app/actions"
 import { toast } from "sonner"
 
@@ -22,6 +22,7 @@ export function SectionGroup({ section, unlocked, onLocalUpdate }: Props) {
   const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
 
   const [notes, setNotes] = useState(section.notes ?? "")
+  const [showNotes, setShowNotes] = useState(!!section.notes)
   const [savePending, startSaveTransition] = useTransition()
 
   const handleSaveNotes = () => {
@@ -82,22 +83,33 @@ export function SectionGroup({ section, unlocked, onLocalUpdate }: Props) {
         </div>
       </div>
 
-      <div className="px-5 lg:px-8 py-4 bg-muted/10 border-b border-border/40">
-        <div className="space-y-3 max-w-3xl">
-          <label className="tag-mono text-muted-foreground flex items-center gap-2">
-            <MessageSquareText className="size-3" />
-            Section Notes
-          </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onBlur={handleSaveNotes}
-            disabled={!unlocked || savePending}
-            rows={2}
-            placeholder="أضف ملاحظات عن هذا السيكشن (يتم الحفظ تلقائياً عند النقر خارج المربع)..."
-            className="w-full bg-card border border-border rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50 resize-y leading-relaxed transition-all"
-          />
+      <div className="px-5 lg:px-8 py-2.5 bg-muted/5 border-b border-border/40">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MessageSquareText className="size-3.5" />
+            <span className="tag-mono text-[10px] uppercase tracking-wider">Section Notes</span>
+          </div>
+          <button
+            onClick={() => setShowNotes(!showNotes)}
+            className="size-6 rounded-full flex items-center justify-center hover:bg-muted transition-colors border border-border"
+          >
+            {showNotes ? <Minus className="size-3" /> : <Plus className="size-3" />}
+          </button>
         </div>
+
+        {showNotes && (
+          <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={handleSaveNotes}
+              disabled={!unlocked || savePending}
+              rows={2}
+              placeholder="أضف ملاحظات عن هذا السيكشن (يتم الحفظ تلقائياً عند النقر خارج المربع)..."
+              className="w-full bg-card border border-border rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50 resize-y leading-relaxed transition-all"
+            />
+          </div>
+        )}
       </div>
 
       <ul className="divide-y divide-border/70">

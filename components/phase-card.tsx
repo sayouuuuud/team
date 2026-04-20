@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, useTransition } from "react"
-import { ChevronDown, MessageSquareText, Loader2 } from "lucide-react"
+import { ChevronDown, MessageSquareText, Loader2, Plus, Minus } from "lucide-react"
 import type { ItemStatus, TestItem, TestPhase } from "@/lib/types"
 import { PHASE_LABELS } from "@/lib/status-config"
 import { SectionGroup } from "./section-group"
@@ -25,6 +25,7 @@ export function PhaseCard({
 }: Props) {
   const [open, setOpen] = useState(phase.order_num === 1)
   const [notes, setNotes] = useState(phase.notes ?? "")
+  const [showNotes, setShowNotes] = useState(!!phase.notes)
   const [savePending, startSaveTransition] = useTransition()
 
   const handleSaveNotes = () => {
@@ -185,22 +186,34 @@ export function PhaseCard({
       {/* ── Expanded body ── */}
       {open && (
         <div className="border-t border-border bg-[color-mix(in_oklch,var(--background)_50%,var(--card))]">
-          <div className="px-5 lg:px-8 py-5 border-b border-border/50 bg-muted/20">
-            <div className="space-y-3 max-w-3xl">
-              <label className="tag-mono text-muted-foreground flex items-center gap-2">
+          <div className="px-5 lg:px-8 py-3 border-b border-border/50 bg-muted/10">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <MessageSquareText className="size-4" />
-                Phase Notes
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                onBlur={handleSaveNotes}
-                disabled={!unlocked || savePending}
-                rows={3}
-                placeholder="أضف ملاحظات عامة حول هذا القسم (Phase)... يتم الحفظ تلقائياً عند النقر خارج المربع."
-                className="w-full bg-card border border-border rounded-md px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50 resize-y leading-relaxed transition-all"
-              />
+                <span className="tag-mono text-[11px] uppercase tracking-wider">Phase Notes</span>
+              </div>
+              <button
+                onClick={() => setShowNotes(!showNotes)}
+                className="size-7 rounded-full flex items-center justify-center hover:bg-muted transition-colors border border-border"
+                title={showNotes ? "إخفاء الملاحظات" : "إضافة/تعديل ملاحظات"}
+              >
+                {showNotes ? <Minus className="size-3.5" /> : <Plus className="size-3.5" />}
+              </button>
             </div>
+
+            {showNotes && (
+              <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  onBlur={handleSaveNotes}
+                  disabled={!unlocked || savePending}
+                  rows={3}
+                  placeholder="أضف ملاحظات عامة حول هذا القسم (Phase)... يتم الحفظ تلقائياً عند النقر خارج المربع."
+                  className="w-full bg-card border border-border rounded-md px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50 resize-y leading-relaxed transition-all"
+                />
+              </div>
+            )}
           </div>
           <div className="divide-y divide-border/80">
             {filteredSections.map((section, idx) => (
