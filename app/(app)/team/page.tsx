@@ -4,6 +4,7 @@ import { getTeamById, getTeamInvitations, getTeamMembers } from "@/lib/data/team
 import { JoinCodeCard } from "@/components/team/join-code-card"
 import { MembersList } from "@/components/team/members-list"
 import { InvitationsPanel } from "@/components/team/invitations-panel"
+import { BrandingForm } from "@/components/team/branding-form"
 
 export const dynamic = "force-dynamic"
 
@@ -55,12 +56,25 @@ export default async function TeamPage() {
         </div>
 
         {isLead ? (
-          <div className="lg:col-span-1">
-            <div className="flex items-center gap-4 mb-5">
-              <span className="eyebrow">Invitations</span>
-              <span className="flex-1 hairline" />
+          <div className="lg:col-span-1 flex flex-col gap-10">
+            <div>
+              <div className="flex items-center gap-4 mb-5">
+                <span className="eyebrow">Invitations</span>
+                <span className="flex-1 hairline" />
+              </div>
+              <InvitationsPanel invitations={invitations} />
             </div>
-            <InvitationsPanel invitations={invitations} />
+
+            <div>
+              <div className="flex items-center gap-4 mb-5">
+                <span className="eyebrow">Branding</span>
+                <span className="flex-1 hairline" />
+              </div>
+              <BrandingForm
+                initialLogo={team?.logo_url ?? null}
+                initialAccent={team?.accent_color ?? null}
+              />
+            </div>
           </div>
         ) : null}
       </div>

@@ -2,6 +2,16 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import { createServiceClient } from "@/lib/supabase/server"
 import type { Metadata } from "next"
+import { ShareViewTracker } from "@/components/share/share-view-tracker"
+import { ClientMilestoneActions } from "@/components/share/client-milestone-actions"
+
+const DEFAULT_ACCENT = "#B89968"
+
+function safeAccent(v: string | null | undefined): string {
+  if (!v) return DEFAULT_ACCENT
+  // Accept only #RRGGBB to avoid CSS injection via inline style.
+  return /^#[0-9A-Fa-f]{6}$/.test(v) ? v : DEFAULT_ACCENT
+}
 
 export const dynamic = "force-dynamic"
 
@@ -41,7 +51,7 @@ async function loadShareData(token: string): Promise<ShareStatus> {
 
   const { data: team } = await admin
     .from("teams")
-    .select("name")
+    .select("name, logo_url, accent_color")
     .eq("id", project.team_id)
     .maybeSingle()
 
@@ -182,6 +192,7 @@ export default async function SharePage({
   }
 
   const { project, team, milestones, files, goals, changelog, resources } = status
+  const accent = safeAccent(team?.accent_color)
   const overallProgress =
     milestones.length === 0
       ? 0
@@ -192,16 +203,30 @@ export default async function SharePage({
 
   return (
     <main className="paper-bg min-h-screen">
+      <ShareViewTracker token={token} />
       {/* Top brand bar */}
-      <header className="border-b border-border bg-background/60 backdrop-blur">
-        <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="tag-mono text-muted-foreground">
-              مشاركة مع العميل
-            </span>
-            <span className="font-display text-lg text-foreground">
-              {team?.name ?? "Team Platform"}
-            </span>
+      <header
+        className="border-b border-border bg-background/60 backdrop-blur"
+        style={{ borderTop: `3px solid ${accent}` }}
+      >
+        <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            {team?.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={team.logo_url || "/placeholder.svg"}
+                alt={team?.name ?? "logo"}
+                className="h-10 w-10 rounded-md object-cover border border-border shrink-0"
+              />
+            ) : null}
+            <div className="flex flex-col min-w-0">
+              <span className="tag-mono text-muted-foreground">
+                مشاركة مع العميل
+              </span>
+              <span className="font-display text-lg text-foreground truncate">
+                {team?.name ?? "Team Platform"}
+              </span>
+            </div>
           </div>
           <Link href="/" className="tag-mono text-muted-foreground hover:text-foreground">
             Team Platform
@@ -298,8 +323,11 @@ export default async function SharePage({
                   <div className="flex items-center gap-3 mt-3">
                     <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                       <div
-                        className="h-full bg-foreground"
-                        style={{ width: `${m.progress ?? 0}%` }}
+                        className="h-full"
+                        style={{
+                          width: `${m.progress ?? 0}%`,
+                          background: accent,
+                        }}
                       />
                     </div>
                     <span className="tag-mono text-muted-foreground min-w-[3ch] text-left">
@@ -318,20 +346,15 @@ export default async function SharePage({
                     </div>
                   )}
 
-                  {m.needs_client_approval && (
-                    <div className="mt-3 text-xs">
-                      {m.client_approved_at ? (
-                        <span className="text-foreground">
-                          تم اعتماد هذه المرحلة بتاريخ{" "}
-                          {formatDate(m.client_approved_at)}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          هذه المرحلة تنتظر اعتمادك.
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <ClientMilestoneActions
+                    token={token}
+                    milestoneId={m.id}
+                    milestoneTitle={m.title}
+                    needsApproval={!!m.needs_client_approval}
+                    alreadyApproved={!!m.client_approved_at}
+                    approvedAt={m.client_approved_at ?? null}
+                    accent={accent}
+                  />
                 </li>
               ))}
             </ol>

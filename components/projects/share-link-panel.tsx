@@ -93,6 +93,26 @@ export function ShareLinkPanel({ project }: { project: ProjectRow }) {
           ) : (
             <p className="tag-mono text-muted-foreground mt-3">no expiry</p>
           )}
+
+          <div className="mt-4 pt-4 border-t border-border flex items-center justify-between gap-3">
+            <div className="flex flex-col">
+              <span className="tag-mono text-muted-foreground">views</span>
+              <span className="font-display text-xl text-foreground num-latin">
+                {project.share_views ?? 0}
+              </span>
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="tag-mono text-muted-foreground">last opened</span>
+              <span className="tag-mono text-foreground num-latin">
+                {project.share_last_viewed_at
+                  ? new Date(project.share_last_viewed_at).toLocaleDateString(
+                      "ar",
+                      { dateStyle: "medium" },
+                    )
+                  : "—"}
+              </span>
+            </div>
+          </div>
         </>
       ) : (
         <>

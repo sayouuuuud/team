@@ -28,6 +28,8 @@ export type ProjectRow = {
   share_token: string | null
   share_expires_at: string | null
   show_team_to_client: boolean
+  share_views: number
+  share_last_viewed_at: string | null
   start_date: string | null
   expected_end_date: string | null
   auto_status: ProjectAutoStatus
@@ -42,7 +44,7 @@ export type ProjectWithProgress = ProjectRow & {
 }
 
 const PROJECT_SELECT =
-  "id, team_id, name, client_name, client_email, description, status, work_mode, share_token, share_expires_at, show_team_to_client, start_date, expected_end_date, auto_status, predicted_end_date, last_activity_at, created_at"
+  "id, team_id, name, client_name, client_email, description, status, work_mode, share_token, share_expires_at, show_team_to_client, share_views, share_last_viewed_at, start_date, expected_end_date, auto_status, predicted_end_date, last_activity_at, created_at"
 
 function computeProgress(rows: { progress: number }[]): number {
   if (rows.length === 0) return 0

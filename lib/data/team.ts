@@ -13,7 +13,9 @@ export async function getTeamById(teamId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from("teams")
-    .select("id, name, join_code, max_files, lead_id, created_at")
+    .select(
+      "id, name, join_code, max_files, lead_id, logo_url, accent_color, created_at",
+    )
     .eq("id", teamId)
     .maybeSingle()
   return data
