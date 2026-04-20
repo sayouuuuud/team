@@ -21,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     items = [
       { href: "/dashboard", label: "الرئيسية" },
       { href: "/projects", label: "المشاريع" },
+      { href: "/my-tasks", label: "مهامي" },
       { href: "/team", label: "الفريق" },
       { href: "/account", label: "حسابي" },
     ]

@@ -3,6 +3,11 @@ import { requireUser } from "@/lib/auth/helpers"
 import { createClient } from "@/lib/supabase/server"
 import { getProjectsByTeam } from "@/lib/data/projects"
 import { getTeamMembers } from "@/lib/data/team"
+import { getMyMilestones } from "@/lib/data/my-tasks"
+import {
+  getTeamWeeklySeconds,
+  getUserWeeklySeconds,
+} from "@/lib/data/time"
 import { OnboardingPanel } from "@/components/dashboard/onboarding-panel"
 
 export const dynamic = "force-dynamic"
@@ -54,6 +59,19 @@ export default async function DashboardPage() {
   const pendingCount = members.filter((m) => m.pending_approval).length
   const activeMembers = members.filter((m) => !m.pending_approval).length
 
+  // Phase 4 stats.
+  const activeProjects = projects.filter((p) => p.status === "active").length
+  const myTasks = me.pending_approval ? [] : await getMyMilestones(me.id)
+  const openMyTasks = myTasks.filter(
+    (t) => t.status !== "approved" && t.status !== "rejected",
+  ).length
+  const weeklySeconds =
+    me.team_id && !me.pending_approval
+      ? me.role === "team_lead"
+        ? await getTeamWeeklySeconds(me.team_id)
+        : await getUserWeeklySeconds(me.id)
+      : 0
+
   return (
     <div className="rise-in">
       <div className="mb-10">
@@ -87,6 +105,32 @@ export default async function DashboardPage() {
               المشاريع.
             </p>
           </div>
+        </div>
+      ) : null}
+
+      {me.team_id && !me.pending_approval ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <StatCard
+            eyebrow="Active projects"
+            value={String(activeProjects)}
+            hint={`من إجمالي ${projects.length}`}
+          />
+          <StatCard
+            eyebrow="My open tasks"
+            value={String(openMyTasks)}
+            hint="مسنَدة لك وغير مكتملة"
+            href="/my-tasks"
+          />
+          <StatCard
+            eyebrow={me.role === "team_lead" ? "Team hours (week)" : "Your hours (week)"}
+            value={formatHours(weeklySeconds)}
+            hint="منذ بداية الأسبوع"
+          />
+          <StatCard
+            eyebrow="Team size"
+            value={String(activeMembers)}
+            hint={pendingCount > 0 ? `+${pendingCount} بانتظار الاعتماد` : "أعضاء نشطون"}
+          />
         </div>
       ) : null}
 
@@ -187,6 +231,41 @@ export default async function DashboardPage() {
       ) : null}
     </div>
   )
+}
+
+function StatCard({
+  eyebrow,
+  value,
+  hint,
+  href,
+}: {
+  eyebrow: string
+  value: string
+  hint: string
+  href?: string
+}) {
+  const content = (
+    <>
+      <div className="eyebrow mb-2">{eyebrow}</div>
+      <div className="font-mono text-2xl text-foreground num-latin">{value}</div>
+      <p className="tag-mono text-muted-foreground mt-1 line-clamp-1">{hint}</p>
+    </>
+  )
+  if (href) {
+    return (
+      <Link href={href} className="card-paper p-5 block hover:border-foreground/30 transition-colors">
+        {content}
+      </Link>
+    )
+  }
+  return <div className="card-paper p-5">{content}</div>
+}
+
+function formatHours(totalSec: number): string {
+  if (totalSec < 60) return "0h"
+  const h = totalSec / 3600
+  if (h < 1) return `${Math.round(totalSec / 60)}m`
+  return `${h.toFixed(1)}h`
 }
 
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {

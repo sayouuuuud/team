@@ -10,6 +10,8 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
 
   const tabs: Tab[] = [
     { href: `/projects/${projectId}`, label: "نظرة عامة", labelEn: "Overview" },
+    { href: `/projects/${projectId}/board`, label: "اللوحة", labelEn: "Board" },
+    { href: `/projects/${projectId}/time`, label: "الوقت", labelEn: "Time" },
     { href: `/projects/${projectId}/docs`, label: "الدوكيومنتيشن", labelEn: "Docs" },
     { href: `/projects/${projectId}/goals`, label: "الأهداف", labelEn: "Goals" },
     { href: `/projects/${projectId}/announcements`, label: "إعلانات داخلية", labelEn: "Announcements" },
