@@ -1,10 +1,12 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { ChevronDown } from "lucide-react"
+import { useMemo, useState, useTransition } from "react"
+import { ChevronDown, MessageSquareText, Loader2 } from "lucide-react"
 import type { ItemStatus, TestItem, TestPhase } from "@/lib/types"
 import { PHASE_LABELS } from "@/lib/status-config"
 import { SectionGroup } from "./section-group"
+import { updatePhaseNotes } from "@/app/actions"
+import { toast } from "sonner"
 
 type Props = {
   phase: TestPhase
@@ -22,6 +24,23 @@ export function PhaseCard({
   onLocalUpdate,
 }: Props) {
   const [open, setOpen] = useState(phase.order_num === 1)
+  const [notes, setNotes] = useState(phase.notes ?? "")
+  const [savePending, startSaveTransition] = useTransition()
+
+  const handleSaveNotes = () => {
+    if (!unlocked) {
+      toast.error("التعديل مقفول")
+      return
+    }
+    startSaveTransition(async () => {
+      const res = await updatePhaseNotes(phase.id, notes.trim() || null)
+      if (res.ok) {
+        toast.success("تم حفظ الملاحظات")
+      } else {
+        toast.error(res.error || "فشل حفظ الملاحظات")
+      }
+    })
+  }
 
   const kicker = PHASE_LABELS[phase.color_key]?.kicker ?? "MODULE"
 
@@ -166,6 +185,23 @@ export function PhaseCard({
       {/* ── Expanded body ── */}
       {open && (
         <div className="border-t border-border bg-[color-mix(in_oklch,var(--background)_50%,var(--card))]">
+          <div className="px-5 lg:px-8 py-5 border-b border-border/50 bg-muted/20">
+            <div className="space-y-3 max-w-3xl">
+              <label className="tag-mono text-muted-foreground flex items-center gap-2">
+                <MessageSquareText className="size-4" />
+                Phase Notes
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                onBlur={handleSaveNotes}
+                disabled={!unlocked || savePending}
+                rows={3}
+                placeholder="أضف ملاحظات عامة حول هذا القسم (Phase)... يتم الحفظ تلقائياً عند النقر خارج المربع."
+                className="w-full bg-card border border-border rounded-md px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50 resize-y leading-relaxed transition-all"
+              />
+            </div>
+          </div>
           <div className="divide-y divide-border/80">
             {filteredSections.map((section, idx) => (
               <SectionGroup

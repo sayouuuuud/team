@@ -9,7 +9,6 @@ export interface TestItem {
   status: ItemStatus
   notes: string | null
   tester_name: string | null
-  screenshot_url: string | null
   error_description: string | null
   error_code: string | null
   updated_at: string
@@ -22,6 +21,7 @@ export interface TestSection {
   section_num: string
   title: string
   order_num: number
+  notes: string | null
   items: TestItem[]
 }
 
@@ -31,5 +31,6 @@ export interface TestPhase {
   title: string
   goal: string | null
   color_key: string
+  notes: string | null
   sections: TestSection[]
 }

@@ -6,7 +6,6 @@ import {
   ChevronDown,
   Clock,
   FileWarning,
-  ImagePlus,
   Loader2,
   MessageSquareText,
   MinusCircle,
@@ -16,10 +15,8 @@ import {
 } from "lucide-react"
 import type { ItemStatus, TestItem } from "@/lib/types"
 import { STATUS_CONFIG, STATUS_ORDER } from "@/lib/status-config"
-import {
   updateItemFields,
   updateItemStatus,
-  uploadScreenshot,
 } from "@/app/actions"
 import { toast } from "sonner"
 
@@ -41,8 +38,6 @@ export function ChecklistItem({ item, unlocked, onLocalUpdate }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [statusPending, startStatusTransition] = useTransition()
   const [savePending, startSaveTransition] = useTransition()
-  const [uploading, setUploading] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
 
   const [notes, setNotes] = useState(item.notes ?? "")
   const [testerName, setTesterName] = useState(item.tester_name ?? "")
@@ -90,45 +85,13 @@ export function ChecklistItem({ item, unlocked, onLocalUpdate }: Props) {
     })
   }
 
-  const handleUpload = async (file: File) => {
-    if (!unlocked) {
-      toast.error("التعديل مقفول")
-      return
-    }
-    setUploading(true)
-    const fd = new FormData()
-    fd.append("file", file)
-    const res = await uploadScreenshot(item.id, fd)
-    setUploading(false)
-    if (res.ok && res.url) {
-      onLocalUpdate(item.id, { screenshot_url: res.url })
-      toast.success("تم رفع الصورة")
-    } else {
-      toast.error(res.error || "فشل رفع الصورة")
-    }
-  }
-
-  const handleRemoveScreenshot = () => {
-    if (!unlocked) return
-    startSaveTransition(async () => {
-      const res = await updateItemFields(item.id, { screenshot_url: null })
-      if (res.ok) {
-        onLocalUpdate(item.id, { screenshot_url: null })
-        toast.success("تمت الإزالة")
-      } else {
-        toast.error(res.error || "فشل")
-      }
-    })
-  }
-
   const StatusIcon = STATUS_ICONS[item.status]
 
   const hasDetails =
     !!item.notes ||
     !!item.tester_name ||
     !!item.error_description ||
-    !!item.error_code ||
-    !!item.screenshot_url
+    !!item.error_code
 
   const hasErrorDetails =
     item.status === "fail" || item.status === "blocked" || !!errorDesc || !!errorCode
@@ -381,60 +344,7 @@ export function ChecklistItem({ item, unlocked, onLocalUpdate }: Props) {
               </div>
             )}
 
-            <div className="space-y-3">
-              <label className="tag-mono text-muted-foreground flex items-center gap-2">
-                <ImagePlus className="size-3" />
-                Screenshot
-              </label>
-              {item.screenshot_url ? (
-                <div className="relative max-w-lg rounded-md overflow-hidden border border-border group/img">
-                  <a href={item.screenshot_url} target="_blank" rel="noreferrer">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.screenshot_url}
-                      alt={`Screenshot for ${item.code}`}
-                      className="w-full h-auto transition-transform duration-300 group-hover/img:scale-105"
-                    />
-                  </a>
-                  {unlocked && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveScreenshot}
-                      className="absolute top-3 left-3 size-8 rounded-md bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive transition-colors"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) void handleUpload(file)
-                      if (fileRef.current) fileRef.current.value = ""
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={!unlocked || uploading}
-                    className="inline-flex items-center gap-2 px-5 py-3 rounded-md border-2 border-dashed border-border text-sm text-muted-foreground hover:text-primary hover:border-primary transition-colors disabled:opacity-50 bg-card"
-                  >
-                    {uploading ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <ImagePlus className="size-4" />
-                    )}
-                    {uploading ? "جاري الرفع..." : "رفع صورة"}
-                  </button>
-                </>
-              )}
-            </div>
+
 
             {unlocked ? (
               <div className="flex justify-end pt-3 border-t border-border">

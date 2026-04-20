@@ -73,7 +73,6 @@ export async function updateItemFields(
     tester_name?: string | null
     error_description?: string | null
     error_code?: string | null
-    screenshot_url?: string | null
   },
 ): Promise<{ ok: boolean; error?: string }> {
   try {
@@ -91,42 +90,39 @@ export async function updateItemFields(
   }
 }
 
-export async function uploadScreenshot(
-  itemId: number,
-  formData: FormData,
-): Promise<{ ok: boolean; url?: string; error?: string }> {
+export async function updateSectionNotes(
+  sectionId: number,
+  notes: string | null
+): Promise<{ ok: boolean; error?: string }> {
   try {
     await assertUnlocked()
-    const file = formData.get("file") as File | null
-    if (!file) return { ok: false, error: "لم يتم اختيار ملف" }
-
     const supabase = createServiceClient()
-    const ext = file.name.split(".").pop() || "png"
-    const path = `item-${itemId}/${Date.now()}.${ext}`
+    const { error } = await supabase
+      .from("test_sections")
+      .update({ notes })
+      .eq("id", sectionId)
 
-    const { error: uploadError } = await supabase.storage
-      .from("test-screenshots")
-      .upload(path, file, {
-        contentType: file.type,
-        upsert: false,
-      })
+    if (error) return { ok: false, error: error.message }
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "خطأ غير معروف" }
+  }
+}
 
-    if (uploadError) return { ok: false, error: uploadError.message }
+export async function updatePhaseNotes(
+  phaseId: number,
+  notes: string | null
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await assertUnlocked()
+    const supabase = createServiceClient()
+    const { error } = await supabase
+      .from("test_phases")
+      .update({ notes })
+      .eq("id", phaseId)
 
-    const { data: publicUrl } = supabase.storage
-      .from("test-screenshots")
-      .getPublicUrl(path)
-
-    const url = publicUrl.publicUrl
-
-    const { error: updateError } = await supabase
-      .from("test_items")
-      .update({ screenshot_url: url, updated_at: new Date().toISOString() })
-      .eq("id", itemId)
-
-    if (updateError) return { ok: false, error: updateError.message }
-
-    return { ok: true, url }
+    if (error) return { ok: false, error: error.message }
+    return { ok: true }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "خطأ غير معروف" }
   }
