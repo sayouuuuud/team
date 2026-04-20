@@ -8,6 +8,8 @@ import { MilestonesPanel } from "@/components/projects/milestones-panel"
 import { FilesPanel } from "@/components/projects/files-panel"
 import { ShareLinkPanel } from "@/components/projects/share-link-panel"
 import { ProjectMetaCard } from "@/components/projects/project-meta-card"
+import { AutopilotBadge } from "@/components/projects/autopilot-badge"
+import { AutopilotCard } from "@/components/projects/autopilot-card"
 
 export const dynamic = "force-dynamic"
 
@@ -62,6 +64,7 @@ export default async function ProjectDetailPage(props: {
             >
               {STATUS_LABEL[project.status]}
             </span>
+            <AutopilotBadge status={project.auto_status} />
           </div>
           {project.description ? (
             <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
@@ -103,6 +106,13 @@ export default async function ProjectDetailPage(props: {
         </div>
 
         <aside className="lg:col-span-1 flex flex-col gap-6">
+          <AutopilotCard
+            projectId={project.id}
+            autoStatus={project.auto_status}
+            plannedEnd={project.expected_end_date}
+            predictedEnd={project.predicted_end_date}
+            canRecompute={isLead}
+          />
           <ProjectMetaCard project={project} />
           {isLead ? <ShareLinkPanel project={project} /> : null}
         </aside>

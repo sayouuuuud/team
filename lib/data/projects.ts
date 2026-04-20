@@ -9,6 +9,13 @@ export type MilestoneStatus =
   | "approved"
   | "rejected"
 
+export type ProjectAutoStatus =
+  | "on_track"
+  | "at_risk"
+  | "late"
+  | "completed"
+  | "paused"
+
 export type ProjectRow = {
   id: string
   team_id: string
@@ -23,6 +30,9 @@ export type ProjectRow = {
   show_team_to_client: boolean
   start_date: string | null
   expected_end_date: string | null
+  auto_status: ProjectAutoStatus
+  predicted_end_date: string | null
+  last_activity_at: string | null
   created_at: string
 }
 
@@ -32,7 +42,7 @@ export type ProjectWithProgress = ProjectRow & {
 }
 
 const PROJECT_SELECT =
-  "id, team_id, name, client_name, client_email, description, status, work_mode, share_token, share_expires_at, show_team_to_client, start_date, expected_end_date, created_at"
+  "id, team_id, name, client_name, client_email, description, status, work_mode, share_token, share_expires_at, show_team_to_client, start_date, expected_end_date, auto_status, predicted_end_date, last_activity_at, created_at"
 
 function computeProgress(rows: { progress: number }[]): number {
   if (rows.length === 0) return 0

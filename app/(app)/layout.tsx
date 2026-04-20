@@ -22,6 +22,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       { href: "/dashboard", label: "الرئيسية" },
       { href: "/projects", label: "المشاريع" },
       { href: "/my-tasks", label: "مهامي" },
+      ...(me.role === "team_lead"
+        ? [{ href: "/ai", label: "المساعد" }]
+        : []),
       { href: "/team", label: "الفريق" },
       { href: "/account", label: "حسابي" },
     ]

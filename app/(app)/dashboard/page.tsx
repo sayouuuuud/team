@@ -9,6 +9,7 @@ import {
   getUserWeeklySeconds,
 } from "@/lib/data/time"
 import { OnboardingPanel } from "@/components/dashboard/onboarding-panel"
+import { AutopilotBadge } from "@/components/projects/autopilot-badge"
 
 export const dynamic = "force-dynamic"
 
@@ -195,13 +196,21 @@ export default async function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {projects.slice(0, 6).map((p) => (
                 <Link key={p.id} href={`/projects/${p.id}`} className="card-paper p-5 block">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-2 gap-2">
                     <h3 className="font-display text-lg text-foreground line-clamp-1">
                       {p.name}
                     </h3>
                     <span className="tag-mono text-muted-foreground num-latin">
                       {p.progress_percent}%
                     </span>
+                  </div>
+                  <div className="mb-3 flex items-center gap-2 flex-wrap">
+                    <AutopilotBadge status={p.auto_status} />
+                    {p.predicted_end_date ? (
+                      <span className="tag-mono text-muted-foreground num-latin">
+                        → {p.predicted_end_date}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-3">
                     {p.description ?? "—"}
