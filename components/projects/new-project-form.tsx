@@ -3,11 +3,26 @@
 import { useState, useTransition } from "react"
 import { createProjectAction } from "@/app/(app)/projects/actions"
 
-export function NewProjectForm() {
+type TemplateOption = {
+  id: string
+  name: string
+  milestone_count: number
+}
+
+type Props = {
+  templates: TemplateOption[]
+  initialTemplateId: string
+}
+
+export function NewProjectForm({ templates, initialTemplateId }: Props) {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [clientName, setClientName] = useState("")
   const [clientEmail, setClientEmail] = useState("")
+  const [startDate, setStartDate] = useState<string>(() =>
+    new Date().toISOString().slice(0, 10),
+  )
+  const [templateId, setTemplateId] = useState<string>(initialTemplateId)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -19,6 +34,8 @@ export function NewProjectForm() {
     fd.set("description", description)
     fd.set("client_name", clientName)
     fd.set("client_email", clientEmail)
+    fd.set("start_date", startDate)
+    if (templateId) fd.set("template_id", templateId)
     startTransition(async () => {
       const res = await createProjectAction(fd)
       if (res?.error) setError(res.error)
@@ -90,6 +107,42 @@ export function NewProjectForm() {
             className="h-11 rounded-md border border-border bg-background px-3 font-mono text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             style={{ direction: "ltr" }}
           />
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <label htmlFor="start_date" className="tag-mono text-muted-foreground">
+            تاريخ البدء
+          </label>
+          <input
+            id="start_date"
+            name="start_date"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="h-11 rounded-md border border-border bg-background px-3 num-latin text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="template_id" className="tag-mono text-muted-foreground">
+            ابدأ من قالب
+            <span className="mr-2 text-[10px] text-muted-foreground/70">(اختياري)</span>
+          </label>
+          <select
+            id="template_id"
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+            className="h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">— بدون قالب —</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} ({t.milestone_count} معلم)
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

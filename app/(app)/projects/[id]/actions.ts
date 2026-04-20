@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache"
 import { requireRole, requireUser } from "@/lib/auth/helpers"
 import { createClient } from "@/lib/supabase/server"
+import {
+  notify,
+  getMilestoneAssignees,
+  getProjectLead,
+} from "@/lib/notifications"
 
 type Result = { error?: string; success?: string }
 
@@ -89,6 +94,13 @@ export async function updateMilestoneStatusAction(
   if (!project) return { error: "غير مصرح." }
 
   const supabase = await createClient()
+  const { data: ms } = await supabase
+    .from("milestones")
+    .select("id, title")
+    .eq("id", milestoneId)
+    .eq("project_id", projectId)
+    .maybeSingle()
+
   const { error } = await supabase
     .from("milestones")
     .update({ status })
@@ -96,6 +108,31 @@ export async function updateMilestoneStatusAction(
     .eq("project_id", projectId)
 
   if (error) return { error: error.message }
+
+  // Fire notifications (best-effort, never blocks)
+  const title = ms?.title ?? "معلم"
+  const link = `/projects/${projectId}`
+  if (status === "review") {
+    const lead = await getProjectLead(projectId)
+    if (lead && lead !== me.id) {
+      await notify({
+        userIds: [lead],
+        type: "milestone_submitted",
+        title: "معلم بانتظار المراجعة",
+        body: title,
+        link,
+      })
+    }
+  } else if (status === "approved" || status === "rejected") {
+    const assignees = await getMilestoneAssignees(milestoneId, me.id)
+    await notify({
+      userIds: assignees,
+      type: status === "approved" ? "milestone_approved" : "milestone_rejected",
+      title: status === "approved" ? "تم اعتماد معلمك" : "تم رفض معلمك",
+      body: title,
+      link,
+    })
+  }
 
   revalidatePath(`/projects/${projectId}`)
   return { success: "تم تحديث الحالة." }

@@ -5,6 +5,11 @@ import { createClient } from "@/lib/supabase/server"
 import { requireUser } from "@/lib/auth/helpers"
 import { getProjectById } from "@/lib/data/projects"
 import { audit } from "@/lib/audit"
+import {
+  notify,
+  getProjectTeamAudience,
+  getMilestoneAssignees,
+} from "@/lib/notifications"
 
 /* ---------- access helpers ---------- */
 
@@ -178,6 +183,16 @@ export async function createAnnouncementAction(fd: FormData) {
     .single()
   if (error || !data) throw new Error(error?.message ?? "Failed")
   await audit(me.id, me.team_id, "announcement.create", "announcement", data.id, { title })
+
+  const audience = await getProjectTeamAudience(projectId, me.id)
+  await notify({
+    userIds: audience,
+    type: "announcement_posted",
+    title: `إعلان جديد: ${title}`,
+    body: null,
+    link: `/projects/${projectId}/announcements`,
+  })
+
   revalidatePath(`/projects/${projectId}/announcements`)
 }
 
@@ -442,6 +457,19 @@ export async function createCommentAction(fd: FormData) {
   await audit(me.id, me.team_id, "comment.create", "comment", null, {
     milestone_id: milestoneId,
   })
+
+  // Notify milestone assignees (they care about comments on their tasks).
+  const assignees = await getMilestoneAssignees(milestoneId, me.id)
+  if (assignees.length > 0) {
+    await notify({
+      userIds: assignees,
+      type: "comment_added",
+      title: "تعليق جديد على معلمك",
+      body: content.slice(0, 160),
+      link: `/projects/${projectId}`,
+    })
+  }
+
   revalidatePath(`/projects/${projectId}`)
 }
 

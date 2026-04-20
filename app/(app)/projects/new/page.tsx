@@ -1,11 +1,25 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { requireRole } from "@/lib/auth/helpers"
+import { getTeamTemplates } from "@/lib/data/templates"
 import { NewProjectForm } from "@/components/projects/new-project-form"
 
-export default async function NewProjectPage() {
+export default async function NewProjectPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ template?: string }>
+}) {
   const me = await requireRole("team_lead", "/projects/new")
   if (!me.team_id) redirect("/dashboard")
+
+  const [templates, sp] = await Promise.all([
+    getTeamTemplates(me.team_id),
+    searchParams,
+  ])
+
+  const preselected = sp.template && templates.some((t) => t.id === sp.template)
+    ? sp.template
+    : ""
 
   return (
     <div className="rise-in max-w-2xl">
@@ -22,7 +36,14 @@ export default async function NewProjectPage() {
         <div className="gold-rule w-16 mt-6" />
       </div>
 
-      <NewProjectForm />
+      <NewProjectForm
+        templates={templates.map((t) => ({
+          id: t.id,
+          name: t.name,
+          milestone_count: t.milestone_count,
+        }))}
+        initialTemplateId={preselected}
+      />
     </div>
   )
 }

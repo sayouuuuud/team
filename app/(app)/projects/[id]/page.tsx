@@ -10,6 +10,7 @@ import { ShareLinkPanel } from "@/components/projects/share-link-panel"
 import { ProjectMetaCard } from "@/components/projects/project-meta-card"
 import { AutopilotBadge } from "@/components/projects/autopilot-badge"
 import { AutopilotCard } from "@/components/projects/autopilot-card"
+import { SaveTemplateCard } from "@/components/projects/save-template-card"
 
 export const dynamic = "force-dynamic"
 
@@ -115,6 +116,13 @@ export default async function ProjectDetailPage(props: {
           />
           <ProjectMetaCard project={project} />
           {isLead ? <ShareLinkPanel project={project} /> : null}
+          {isLead ? (
+            <SaveTemplateCard
+              projectId={project.id}
+              projectName={project.name}
+              milestoneCount={milestones.length}
+            />
+          ) : null}
         </aside>
       </div>
     </div>

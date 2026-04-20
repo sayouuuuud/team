@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { NotificationsBell } from "./notifications-bell"
 
 type NavItem = { href: string; label: string }
 
@@ -10,11 +11,13 @@ export function AppNav({
   logoutAction,
   profile,
   teamName,
+  bell,
 }: {
   items: NavItem[]
   logoutAction: () => Promise<void>
   profile: { full_name: string | null; email: string | null; role: string }
   teamName: string | null
+  bell: { userId: string; initialUnread: number } | null
 }) {
   const pathname = usePathname()
 
@@ -60,7 +63,13 @@ export function AppNav({
           })}
         </nav>
 
-        <div className="mr-auto flex items-center gap-4">
+        <div className="mr-auto flex items-center gap-3">
+          {bell ? (
+            <NotificationsBell
+              userId={bell.userId}
+              initialUnread={bell.initialUnread}
+            />
+          ) : null}
           <div className="hidden text-right sm:flex sm:flex-col">
             <span className="text-sm font-medium text-foreground leading-tight">
               {profile.full_name ?? profile.email ?? "—"}
