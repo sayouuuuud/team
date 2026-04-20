@@ -29,8 +29,8 @@ BEGIN
   INSERT INTO auth.users (id, email, raw_user_meta_data)
   VALUES (v_user, 'p4_' || v_user || '@test.local', '{}'::jsonb);
 
-  INSERT INTO profiles (id, email, full_name, role)
-  VALUES (v_user, 'p4_' || v_user || '@test.local', 'P4 Tester', 'team_lead');
+  INSERT INTO profiles (id, full_name, role)
+  VALUES (v_user, 'P4 Tester', 'team_lead');
 
   INSERT INTO teams (name, lead_id, join_code)
   VALUES ('p4-team', v_user, 'P4-' || substr(v_user::text, 1, 6))
