@@ -38,7 +38,7 @@ BEGIN
     (v_user2, 'p5e_' || v_user2 || '@test.local');
   INSERT INTO profiles (id, full_name, role) VALUES
     (v_user,  'P5E Lead',   'team_lead'),
-    (v_user2, 'P5E Member', 'team_member');
+    (v_user2, 'P5E Member', 'member');
   INSERT INTO teams (name, lead_id, join_code)
     VALUES ('P5E Team', v_user, 'P5E' || substr(md5(random()::text), 1, 6))
     RETURNING id INTO v_team;
