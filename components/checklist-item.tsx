@@ -65,23 +65,31 @@ export function ChecklistItem({ item, unlocked, onLocalUpdate }: Props) {
   }
 
   const handleSaveDetails = () => {
-    if (!unlocked) {
-      toast.error("التعديل مقفول")
-      return
+    if (!unlocked) return
+
+    const payload = {
+      notes: notes.trim() || null,
+      tester_name: testerName.trim() || null,
+      error_description: errorDesc.trim() || null,
+      error_code: errorCode.trim() || null,
     }
+
+    // Check if anything actually changed
+    const hasChanged =
+      payload.notes !== (item.notes ?? null) ||
+      payload.tester_name !== (item.tester_name ?? null) ||
+      payload.error_description !== (item.error_description ?? null) ||
+      payload.error_code !== (item.error_code ?? null)
+
+    if (!hasChanged) return
+
     startSaveTransition(async () => {
-      const payload = {
-        notes: notes.trim() || null,
-        tester_name: testerName.trim() || null,
-        error_description: errorDesc.trim() || null,
-        error_code: errorCode.trim() || null,
-      }
       const res = await updateItemFields(item.id, payload)
       if (res.ok) {
         onLocalUpdate(item.id, payload)
-        toast.success("تم الحفظ")
+        toast.success("تم التحديث تلقائياً")
       } else {
-        toast.error(res.error || "فشل الحفظ")
+        toast.error(res.error || "فشل الحفظ التلقائي")
       }
     })
   }
@@ -266,6 +274,7 @@ export function ChecklistItem({ item, unlocked, onLocalUpdate }: Props) {
                   type="text"
                   value={testerName}
                   onChange={(e) => setTesterName(e.target.value)}
+                  onBlur={handleSaveDetails}
                   disabled={!unlocked}
                   placeholder="اكتب اسمك..."
                   className="w-full bg-card border border-border rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50 transition-all"
@@ -292,6 +301,7 @@ export function ChecklistItem({ item, unlocked, onLocalUpdate }: Props) {
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                onBlur={handleSaveDetails}
                 disabled={!unlocked}
                 rows={3}
                 placeholder="أي ملاحظة إضافية..."
@@ -322,6 +332,7 @@ export function ChecklistItem({ item, unlocked, onLocalUpdate }: Props) {
                   <textarea
                     value={errorDesc}
                     onChange={(e) => setErrorDesc(e.target.value)}
+                    onBlur={handleSaveDetails}
                     disabled={!unlocked}
                     rows={2}
                     placeholder="اشرح المشكلة..."
@@ -335,6 +346,7 @@ export function ChecklistItem({ item, unlocked, onLocalUpdate }: Props) {
                   <textarea
                     value={errorCode}
                     onChange={(e) => setErrorCode(e.target.value)}
+                    onBlur={handleSaveDetails}
                     disabled={!unlocked}
                     rows={4}
                     placeholder="Paste console error or code..."
@@ -348,16 +360,13 @@ export function ChecklistItem({ item, unlocked, onLocalUpdate }: Props) {
 
 
             {unlocked ? (
-              <div className="flex justify-end pt-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={handleSaveDetails}
-                  disabled={savePending}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 transition-all"
-                >
-                  {savePending && <Loader2 className="size-4 animate-spin" />}
-                  حفظ التفاصيل
-                </button>
+              <div className="flex justify-end pt-1">
+                {savePending && (
+                  <div className="flex items-center gap-2 text-[10px] tag-mono text-primary animate-pulse">
+                    <Loader2 className="size-3 animate-spin" />
+                    Saving changes...
+                  </div>
+                )}
               </div>
             ) : (
               <p className="tag-mono text-muted-foreground text-center py-2">

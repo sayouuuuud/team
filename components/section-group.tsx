@@ -26,16 +26,15 @@ export function SectionGroup({ section, unlocked, onLocalUpdate }: Props) {
   const [savePending, startSaveTransition] = useTransition()
 
   const handleSaveNotes = () => {
-    if (!unlocked) {
-      toast.error("التعديل مقفول")
-      return
-    }
+    if (!unlocked) return
+    if (notes.trim() === (section.notes?.trim() ?? "")) return
+
     startSaveTransition(async () => {
       const res = await updateSectionNotes(section.id, notes.trim() || null)
       if (res.ok) {
-        toast.success("تم حفظ الملاحظات")
+        toast.success("تم حفظ ملاحظات القسم")
       } else {
-        toast.error(res.error || "فشل حفظ الملاحظات")
+        toast.error(res.error || "فشل حفظ ملاحظات القسم")
       }
     })
   }
@@ -98,7 +97,7 @@ export function SectionGroup({ section, unlocked, onLocalUpdate }: Props) {
         </div>
 
         {showNotes && (
-          <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200 space-y-2">
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -108,6 +107,14 @@ export function SectionGroup({ section, unlocked, onLocalUpdate }: Props) {
               placeholder="أضف ملاحظات عن هذا السيكشن (يتم الحفظ تلقائياً عند النقر خارج المربع)..."
               className="w-full bg-card border border-border rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50 resize-y leading-relaxed transition-all"
             />
+            {savePending && (
+              <div className="flex justify-end">
+                <div className="flex items-center gap-1.5 text-[10px] tag-mono text-primary animate-pulse">
+                  <Loader2 className="size-3 animate-spin" />
+                  Saving section notes...
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

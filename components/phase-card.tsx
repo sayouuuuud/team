@@ -29,16 +29,15 @@ export function PhaseCard({
   const [savePending, startSaveTransition] = useTransition()
 
   const handleSaveNotes = () => {
-    if (!unlocked) {
-      toast.error("التعديل مقفول")
-      return
-    }
+    if (!unlocked) return
+    if (notes.trim() === (phase.notes?.trim() ?? "")) return
+
     startSaveTransition(async () => {
       const res = await updatePhaseNotes(phase.id, notes.trim() || null)
       if (res.ok) {
-        toast.success("تم حفظ الملاحظات")
+        toast.success("تم حفظ ملاحظات المرحلة")
       } else {
-        toast.error(res.error || "فشل حفظ الملاحظات")
+        toast.error(res.error || "فشل حفظ ملاحظات المرحلة")
       }
     })
   }
@@ -202,7 +201,7 @@ export function PhaseCard({
             </div>
 
             {showNotes && (
-              <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300 space-y-2">
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -212,6 +211,14 @@ export function PhaseCard({
                   placeholder="أضف ملاحظات عامة حول هذا القسم (Phase)... يتم الحفظ تلقائياً عند النقر خارج المربع."
                   className="w-full bg-card border border-border rounded-md px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50 resize-y leading-relaxed transition-all"
                 />
+                {savePending && (
+                  <div className="flex justify-end">
+                    <div className="flex items-center gap-1.5 text-[10px] tag-mono text-primary animate-pulse">
+                      <Loader2 className="size-3 animate-spin" />
+                      Saving phase notes...
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
