@@ -2,7 +2,7 @@ import { createUploadthing, type FileRouter } from "uploadthing/next"
 import { UploadThingError } from "uploadthing/server"
 import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth/helpers"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createServiceClient } from "@/lib/supabase/server"
 
 const f = createUploadthing()
 
@@ -42,12 +42,15 @@ export const ourFileRouter = {
       }
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      const supabase = await createClient()
+      // This callback runs as a server-to-server webhook from UploadThing,
+      // so there are no auth cookies. We use the service client to bypass
+      // RLS — authorisation was already enforced in the middleware above.
+      const svc = createServiceClient()
       // UploadThing v7 returns `ufsUrl`; older responses may still expose `url`.
       const blobUrl =
         (file as unknown as { ufsUrl?: string; url?: string }).ufsUrl ??
         (file as unknown as { url: string }).url
-      await supabase.from("files").insert({
+      const { error } = await svc.from("files").insert({
         team_id: metadata.teamId,
         project_id: metadata.projectId,
         milestone_id: metadata.milestoneId,
@@ -58,6 +61,10 @@ export const ourFileRouter = {
         size_bytes: file.size,
         mime_type: file.type,
       })
+      if (error) {
+        console.error("[v0] files insert failed", error.message)
+        throw new UploadThingError("Could not save file metadata")
+      }
       return { uploadedBy: metadata.userId }
     }),
 } satisfies FileRouter
