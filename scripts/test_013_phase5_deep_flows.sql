@@ -27,11 +27,11 @@ BEGIN
   -- Fresh tenant
   ------------------------------------------------------------------
   INSERT INTO auth.users (id, email) VALUES (v_user, 'p5_' || v_user || '@test.local');
-  INSERT INTO teams (name, lead_id)
-    VALUES ('P5 Team', v_user)
+  INSERT INTO profiles (id, full_name, role) VALUES (v_user, 'P5 Tester', 'team_lead');
+  INSERT INTO teams (name, lead_id, join_code)
+    VALUES ('P5 Team', v_user, 'P5' || substr(md5(random()::text), 1, 6))
     RETURNING id INTO v_team;
-  INSERT INTO profiles (id, full_name, role, team_id)
-    VALUES (v_user, 'P5 Tester', 'team_lead', v_team);
+  UPDATE profiles SET team_id = v_team WHERE id = v_user;
   INSERT INTO projects (team_id, name, status, work_mode, created_by)
     VALUES (v_team, 'P5 Project', 'active', 'parallel', v_user)
     RETURNING id INTO v_project;
