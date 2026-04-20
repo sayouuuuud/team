@@ -32,7 +32,18 @@ export async function notify({ userIds, type, title, body, link }: NotifyInput):
     if (unique.length === 0) return
 
     const service = createServiceClient()
-    const rows = unique.map((user_id) => ({
+
+    // Respect each recipient's in-app preference.
+    const { data: enabled } = await service
+      .from("profiles")
+      .select("id")
+      .in("id", unique)
+      .eq("notify_in_app", true)
+
+    const deliverTo = (enabled ?? []).map((r: { id: string }) => r.id)
+    if (deliverTo.length === 0) return
+
+    const rows = deliverTo.map((user_id) => ({
       user_id,
       type,
       title,

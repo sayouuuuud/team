@@ -1,8 +1,13 @@
 import Link from "next/link"
 import { requireUser } from "@/lib/auth/helpers"
 import { getTeamById } from "@/lib/data/team"
+import { createClient } from "@/lib/supabase/server"
 import { logoutAction } from "@/app/auth/actions"
 import { LeaveTeamButton } from "@/components/account/leave-team-button"
+import {
+  ProfileForm,
+  NotificationPrefsForm,
+} from "@/components/account/prefs-form"
 
 export const dynamic = "force-dynamic"
 
@@ -14,7 +19,28 @@ const ROLE_LABEL: Record<string, string> = {
 
 export default async function AccountPage() {
   const me = await requireUser("/account")
-  const team = me.team_id ? await getTeamById(me.team_id) : null
+  const supabase = await createClient()
+
+  const [team, { data: prefs }] = await Promise.all([
+    me.team_id ? getTeamById(me.team_id) : Promise.resolve(null),
+    supabase
+      .from("profiles")
+      .select(
+        "full_name, language, timezone, notify_in_app, notify_email, notify_mentions, notify_assignments",
+      )
+      .eq("id", me.id)
+      .maybeSingle(),
+  ])
+
+  const profile = {
+    full_name: prefs?.full_name ?? me.full_name ?? null,
+    language: prefs?.language ?? "ar",
+    timezone: prefs?.timezone ?? "Africa/Cairo",
+    notify_in_app: prefs?.notify_in_app ?? true,
+    notify_email: prefs?.notify_email ?? false,
+    notify_mentions: prefs?.notify_mentions ?? true,
+    notify_assignments: prefs?.notify_assignments ?? true,
+  }
 
   return (
     <div className="rise-in max-w-2xl">
@@ -29,16 +55,21 @@ export default async function AccountPage() {
       </div>
 
       <section className="card-paper p-6 mb-6">
-        <div className="eyebrow mb-4">Profile</div>
+        <div className="eyebrow mb-4">Identity</div>
         <dl className="space-y-3 text-sm">
-          <Row label="Full name" value={me.full_name ?? "—"} />
           <Row label="Email" value={me.email ?? "—"} mono />
           <Row label="Role" value={ROLE_LABEL[me.role] ?? me.role} />
-          <Row
-            label="Language"
-            value={me.language === "ar" ? "العربية" : "English"}
-          />
         </dl>
+      </section>
+
+      <section className="card-paper p-6 mb-6">
+        <div className="eyebrow mb-4">Profile</div>
+        <ProfileForm profile={profile} />
+      </section>
+
+      <section className="card-paper p-6 mb-6">
+        <div className="eyebrow mb-4">Notifications</div>
+        <NotificationPrefsForm profile={profile} />
       </section>
 
       <section className="card-paper p-6 mb-6">
