@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache"
 import { requireRole, requireUser } from "@/lib/auth/helpers"
 import { createClient } from "@/lib/supabase/server"
 import { generateInviteToken, generateJoinCode } from "@/lib/auth/codes"
+import { sendEmail } from "@/lib/email/send"
+import { tplInvite } from "@/lib/email/templates"
+import { getTeamById } from "@/lib/data/team"
 
 type Result = { error?: string; success?: string }
 
@@ -117,11 +120,36 @@ export async function createInvitationAction(formData: FormData): Promise<Result
     created_by: me.id,
     expires_at: expiresAt,
   })
-
+  
   if (error) return { error: error.message }
+
+  // Fire-and-forget invitation email. Never blocks the form if delivery fails;
+  // the lead can still copy the link manually from the invitations panel.
+  try {
+    const team = await getTeamById(me.team_id)
+    const base =
+      process.env.NEXT_PUBLIC_APP_URL ??
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
+    if (team && base) {
+      const joinUrl = `${base.replace(/\/+$/, "")}/invite/${token}`
+      const msg = tplInvite({
+        brand: {
+          teamName: team.name,
+          accentColor: team.accent_color,
+          logoUrl: team.logo_url,
+        },
+        inviterName: me.full_name ?? "أحد أعضاء الفريق",
+        joinUrl,
+      })
+      await sendEmail({ to: email, ...msg })
+    }
+  } catch (e) {
+    console.error("[v0] invite email failed", e)
+  }
+
   revalidatePath("/team")
   return { success: "تم إنشاء الدعوة. انسخ الرابط وأرسله للعضو." }
-}
+  }
 
 export async function revokeInvitationAction(invitationId: string): Promise<Result> {
   const me = await requireRole("team_lead")

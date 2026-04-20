@@ -191,6 +191,7 @@ export async function createAnnouncementAction(fd: FormData) {
     title: `إعلان جديد: ${title}`,
     body: null,
     link: `/projects/${projectId}/announcements`,
+    email: true,
   })
 
   revalidatePath(`/projects/${projectId}/announcements`)

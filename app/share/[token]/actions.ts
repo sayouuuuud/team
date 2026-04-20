@@ -94,6 +94,7 @@ export async function clientApproveMilestoneAction(
       title: "اعتمد العميل المرحلة",
       body: ms.title,
       link: `/projects/${project.id}`,
+      email: true,
     })
   }
 
@@ -176,6 +177,7 @@ export async function clientRejectMilestoneAction(
       title: "رفض العميل المرحلة",
       body: `${ms.title} — ${trimmed.slice(0, 120)}`,
       link: `/projects/${project.id}`,
+      email: true,
     })
   }
 

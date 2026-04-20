@@ -121,6 +121,7 @@ export async function updateMilestoneStatusAction(
         title: "معلم بانتظار المراجعة",
         body: title,
         link,
+        email: true,
       })
     }
   } else if (status === "approved" || status === "rejected") {
@@ -131,6 +132,7 @@ export async function updateMilestoneStatusAction(
       title: status === "approved" ? "تم اعتماد معلمك" : "تم رفض معلمك",
       body: title,
       link,
+      email: true,
     })
   }
 
