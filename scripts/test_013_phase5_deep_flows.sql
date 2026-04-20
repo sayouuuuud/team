@@ -74,8 +74,8 @@ BEGIN
   ------------------------------------------------------------------
   v_initial_activity := v_after_child_activity;
   PERFORM pg_sleep(0.05);
-  INSERT INTO files (project_id, filename, blob_url, size_bytes, uploaded_by)
-    VALUES (v_project, 'brief.zip', 'https://example.test/brief.zip', 1024, v_user);
+  INSERT INTO files (team_id, project_id, filename, blob_url, size_bytes, uploaded_by)
+    VALUES (v_team, v_project, 'brief.zip', 'https://example.test/brief.zip', 1024, v_user);
 
   SELECT last_activity_at INTO v_after_child_activity FROM projects WHERE id=v_project;
   IF v_after_child_activity <= v_initial_activity THEN
@@ -88,7 +88,7 @@ BEGIN
   ------------------------------------------------------------------
   v_initial_activity := v_after_child_activity;
   PERFORM pg_sleep(0.05);
-  INSERT INTO comments (milestone_id, author_kind, author_id, body)
+  INSERT INTO comments (milestone_id, author_type, author_id, content)
     VALUES (v_milestone, 'team_member', v_user, 'Looks good');
 
   SELECT last_activity_at INTO v_after_child_activity FROM projects WHERE id=v_project;
