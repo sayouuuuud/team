@@ -87,6 +87,7 @@ export function ChecklistApp({ initialPhases, initialUnlocked }: Props) {
         onStatusFilterChange={setStatusFilter}
         query={query}
         onQueryChange={setQuery}
+        phases={phases}
       />
 
       <main className="mx-auto max-w-[1320px] px-4 lg:px-10 py-10 lg:py-14">

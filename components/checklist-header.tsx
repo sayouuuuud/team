@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Lock, LockOpen, Search, X } from "lucide-react"
+import { Lock, LockOpen, Search, X, FileDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -15,8 +15,9 @@ import {
 import { Label } from "@/components/ui/label"
 import { lockEditor, unlockEditor } from "@/app/actions"
 import { toast } from "sonner"
-import type { ItemStatus } from "@/lib/types"
+import type { ItemStatus, TestPhase } from "@/lib/types"
 import { STATUS_CONFIG } from "@/lib/status-config"
+import { generateMarkdownReport, downloadMarkdown } from "@/lib/export-utils"
 
 type Stats = {
   pending: number
@@ -37,6 +38,7 @@ type Props = {
   onStatusFilterChange: (s: ItemStatus | "all") => void
   query: string
   onQueryChange: (q: string) => void
+  phases: TestPhase[]
 }
 
 export function ChecklistHeader({
@@ -47,10 +49,25 @@ export function ChecklistHeader({
   onStatusFilterChange,
   query,
   onQueryChange,
+  phases,
 }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [password, setPassword] = useState("")
   const [pending, startTransition] = useTransition()
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = () => {
+    setExporting(true)
+    try {
+      const md = generateMarkdownReport(phases)
+      downloadMarkdown(md)
+      toast.success("تم تصدير التقرير بصيغة Markdown ✅")
+    } catch {
+      toast.error("حدث خطأ أثناء التصدير")
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const handleUnlock = () => {
     startTransition(async () => {
@@ -275,6 +292,18 @@ export function ChecklistHeader({
               className="w-full bg-card border border-border rounded-md py-2.5 px-4 pr-10 text-sm placeholder:text-muted-foreground/70 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />
           </div>
+
+          {/* Export button */}
+          <Button
+            onClick={handleExport}
+            disabled={exporting}
+            variant="outline"
+            className="gap-2 rounded-md border-border-strong hover:border-emerald-500 hover:text-emerald-500 transition-all px-4 h-10 bg-transparent shrink-0"
+            title="تصدير التقرير كملف Markdown"
+          >
+            <FileDown className="size-4" />
+            <span className="tag-mono hidden sm:inline">تصدير .md</span>
+          </Button>
 
           {unlocked ? (
             <Button
